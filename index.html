@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Luna, mi cachorrita</title>
+  <meta name="description" content="Aventura pixel art: cría a Luna desde cachorrita, explora el mapa, juega, come, se vacuna y crece día a día.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ PARTIDAS ============ -->
+<section id="screen-profiles" class="screen" aria-labelledby="t-title">
+  <div class="title-wrap">
+    <div class="title-dog" id="title-dog" aria-hidden="true"></div>
+    <h1 id="t-title">LUNA</h1>
+    <div id="profile-list" class="slots"></div>
+    <button class="btn primary big newgame" data-nav="create" aria-label="Nueva partida">➕ 🐶</button>
+    <a class="btn big newgame" href="3d/index.html" aria-label="Probar Luna en 3D">✨ 3D</a>
+    <details class="parents-box">
+      <summary>👨‍👩‍👧 Para papás</summary>
+      <p>Juego de crianza de una cachorrita para peques. Funciona en tiempo real: <b>1 día = 1 semana</b> de vida de Luna, así que conviene visitarla un rato cada día.
+      Controles: flechas o WASD para caminar, Espacio para entrar a los lugares (en el móvil, la cruceta y el botón A). El juego habla en voz alta y Luna ladra con sonidos de perro reales; todo se silencia con 🔊. Aquí abajo pueden elegir la voz (★ = más natural; en Edge suelen estar las voces «Natural»).
+      En el 📖 diario, la sección «Para papás» muestra vacunas, peso y el registro de cada día.</p>
+      <div id="voice-slot"></div>
+      <p>El progreso se guarda en este navegador. Copia de seguridad:</p>
+      <div class="row-btns"><button class="btn" data-export>💾 Exportar</button><button class="btn" data-import>📂 Importar</button></div>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </details>
+  </div>
+</section>
+
+<!-- ============ NUEVA PARTIDA ============ -->
+<section id="screen-create" class="screen" aria-label="Nueva partida">
+  <div class="title-wrap">
+    <form id="create-form" class="panel-pix form" autocomplete="off">
+      <label class="field"><span aria-hidden="true">✏️</span><input id="f-name" name="name" maxlength="16" required placeholder="Tu nombre" aria-label="Tu nombre"></label>
+      <fieldset class="field"><legend aria-label="Tu cara">🙂</legend><div class="choices" id="f-avatars"></div></fieldset>
+      <fieldset class="field"><legend aria-label="Color de Luna">🎨🐶</legend><div class="choices" id="f-coats"></div></fieldset>
+      <div class="row-btns"><button type="button" class="btn" data-nav="profiles" aria-label="Volver">◀</button><button class="btn primary big" type="submit" aria-label="Empezar">🐾 ▶</button></div>
+    </form>
+  </div>
+</section>
+
+<!-- ============ JUEGO ============ -->
+<section id="screen-game" class="screen" aria-label="Mundo de Luna">
+  <canvas id="view" aria-label="Mapa del juego. Usa flechas o WASD para mover a Luna y Espacio para entrar a los lugares."></canvas>
+  <header id="hud" class="hud"></header>
+  <div id="prompt" class="prompt" hidden></div>
+  <button id="guide" class="guide" data-guide hidden aria-label="Pío, tu guía"></button>
+  <div class="pad" aria-hidden="true">
+    <div class="dpad">
+      <button data-pad="up" class="u">▲</button><button data-pad="left" class="l">◀</button>
+      <button data-pad="right" class="r">▶</button><button data-pad="down" class="d">▼</button>
+    </div>
+    <div class="ab"><button data-pad="b" class="b">B</button><button data-pad="a" class="a">A</button></div>
+  </div>
+  <button class="mute" data-mute aria-label="Sonido">🔊</button>
+  <button class="mute music" data-music aria-label="Música">🎵</button>
+  <div id="debug" class="debug" hidden>🧪 <button class="btn small" data-debug="3">+3 h</button><button class="btn small" data-debug="24">+1 día</button><button class="btn small" data-debug="168">+7 días</button></div>
+</section>
+
+<div id="win" class="win" hidden><div id="win-box" class="win-box" role="dialog" aria-modal="true"></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="pop" class="pop" aria-hidden="true"></div>
+
+<script src="js/data.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/sounds.js"></script>
+<script src="js/music.js"></script>
+<script src="js/pixel.js"></script>
+<script src="js/world.js"></script>
+<script src="js/minigames.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/guide.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

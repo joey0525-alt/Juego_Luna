@@ -1,0 +1,103 @@
+GUION DE VOZ — Luna, mi cachorrita
+====================================
+Si grabas o generas estas frases con la voz que quieras y guardas cada una como MP3 en esta
+carpeta (voz/) con el nombre indicado, el juego usará tu grabación en lugar de la voz del sistema.
+Las frases que no tengan archivo se siguen diciendo con la voz del sistema.
+Consejo: tono alegre y cariñoso, pausado, para una niña de 6 años. Formato: MP3 mono.
+
+Total: 94 frases
+
+como-te-llamas-elige-tu-cara-y-el-color-de-luna.mp3  |  ¿Cómo te llamas? Elige tu cara y el color de Luna.
+escribe-tu-nombre.mp3  |  Escribe tu nombre
+uy-tenia-sueno.mp3  |  ¡Uy, tenía sueño!
+buenos-dias.mp3  |  ¡Buenos días!
+buenas-noches-luna.mp3  |  Buenas noches, Luna
+ahora-necesita-descansar-comer-y-beber-agua.mp3  |  Ahora necesita descansar, comer y beber agua
+diario-de-luna.mp3  |  Diario de Luna
+lo-hiciste-genial-ahora-ya-sabes-cuidar-a-luna-yo-te-aviso-c.mp3  |  ¡Lo hiciste genial! Ahora ya sabes cuidar a Luna. Yo te aviso cuando necesite algo.
+paseo-completado.mp3  |  ¡Paseo completado!
+lleva-a-luna-hasta-la-casita-salta-con-a-y-recoge-huesos.mp3  |  ¡Lleva a Luna hasta la casita! Salta con A y recoge huesos.
+atrapa-las-pelotas-antes-de-que-caigan.mp3  |  ¡Atrapa las pelotas antes de que caigan!
+mira-las-flechas-y-luego-repitelas.mp3  |  ¡Mira las flechas y luego repítelas!
+pasa-la-esponja-por-las-manchas.mp3  |  ¡Pasa la esponja por las manchas!
+hola-soy-luna-vamos-a-jugar.mp3  |  ¡Hola! Soy Luna. ¡Vamos a jugar!
+hola-soy-luna-vamos-a-jugar-juntas.mp3  |  ¡Hola! Soy Luna. ¡Vamos a jugar juntas!
+te-quiero.mp3  |  ¡Te quiero!
+todo-limpio.mp3  |  ¡Todo limpio!
+casa.mp3  |  Casa
+lo-hiciste-genial-ahora-ya-sabes-cuidar-a-luna.mp3  |  ¡Lo hiciste genial! Ahora ya sabes cuidar a Luna.
+que-divertido.mp3  |  ¡Qué divertido!
+hola-soy-pio-tu-amigo-usa-las-flechas-para-mover-a-luna.mp3  |  ¡Hola! Soy Pío, tu amigo. Usa las flechas para mover a Luna.
+luna-tiene-hambre-llevala-a-su-casa-acercate-a-la-puerta-y-t.mp3  |  Luna tiene hambre. Llévala a su casa: acércate a la puerta y toca A.
+toca-el-dibujo-de-comer-para-darle-su-comida.mp3  |  Toca el dibujo de comer para darle su comida.
+muy-bien-ahora-dale-mimos.mp3  |  ¡Muy bien! Ahora dale mimos.
+ahora-sal-de-la-casa-tocando-la-equis.mp3  |  Ahora sal de la casa tocando la equis.
+busca-huesos-escondidos-por-el-mapa-con-ellos-compras-cosas-.mp3  |  Busca huesos escondidos por el mapa. ¡Con ellos compras cosas en la tienda!
+luna-tiene-hambre-ve-a-la-casa-y-toca-comer.mp3  |  Luna tiene hambre. Ve a la casa y toca Comer.
+luna-tiene-sed-en-casa-dale-su-lechita.mp3  |  Luna tiene sed. En casa dale su lechita.
+luna-tiene-sed-ve-a-la-casa-y-toca-agua.mp3  |  Luna tiene sed. Ve a la casa y toca Agua.
+luna-tiene-sueno-en-la-casa-toca-siesta-o-dormir.mp3  |  Luna tiene sueño. En la casa toca Siesta o Dormir.
+luna-esta-sucia-ve-a-la-casa-para-limpiarla.mp3  |  Luna está sucia. Ve a la casa para limpiarla.
+luna-esta-aburrida-vamos-a-jugar-a-la-pelota-en-el-parque.mp3  |  Luna está aburrida. ¡Vamos a jugar a la pelota en el parque!
+luna-esta-aburrida-ve-a-la-casa-y-dale-mimos.mp3  |  Luna está aburrida. Ve a la casa y dale mimos.
+uy-luna-hizo-un-accidente-en-casa-hay-que-recogerlo.mp3  |  ¡Uy! Luna hizo un accidente en casa. Hay que recogerlo.
+hoy-le-toca-una-vacuna-a-luna-ve-a-la-veterinaria-y-toca-vac.mp3  |  Hoy le toca una vacuna a Luna. Ve a la veterinaria y toca Vacuna.
+luna-necesita-su-pastilla-contra-los-bichitos-ve-a-la-veteri.mp3  |  Luna necesita su pastilla contra los bichitos. Ve a la veterinaria.
+las-unas-de-luna-estan-largas-en-casa-toca-unas.mp3  |  Las uñas de Luna están largas. En casa toca Uñas.
+luna-esta-durmiendo-dejala-descansar-o-despiertala-con-a.mp3  |  Luna está durmiendo. Déjala descansar, o despiértala con A.
+hora-de-comer-ve-a-la-casa-y-toca-comer.mp3  |  Hora de comer. Ve a la casa y toca Comer.
+dale-agua-fresca-a-luna-en-la-casa.mp3  |  Dale agua fresca a Luna en la casa.
+a-jugar-ve-al-parque-o-al-bosque.mp3  |  ¡A jugar! Ve al parque o al bosque.
+juega-con-luna-dale-mimos-en-la-casa.mp3  |  Juega con Luna: dale mimos en la casa.
+hora-de-la-limpieza-en-casa-cepilla-a-luna.mp3  |  Hora de la limpieza. En casa cepilla a Luna.
+hoy-toca-escuela-ve-a-la-escuela-y-ensenale-un-truco.mp3  |  Hoy toca escuela. Ve a la escuela y enséñale un truco.
+sal-a-pasear-camina-por-el-mapa-con-luna.mp3  |  Sal a pasear: camina por el mapa con Luna.
+todavia-quedan-huesos-escondidos-buscalos.mp3  |  Todavía quedan huesos escondidos. ¡Búscalos!
+luna-esta-feliz-vamos-de-aventura-al-bosque.mp3  |  ¡Luna está feliz! Vamos de aventura al bosque.
+hola-soy-pio-tu-amigo-mueve-a-luna-con-las-flechas-o-con-el-.mp3  |  ¡Hola! Soy Pío, tu amigo. Mueve a Luna con las flechas o con el círculo.
+ahora-sal-de-la-casa-por-la-puerta.mp3  |  Ahora sal de la casa por la puerta.
+busca-huesos-que-brillan-por-el-pueblo-con-ellos-compras-cos.mp3  |  Busca huesos que brillan por el pueblo. ¡Con ellos compras cosas!
+luna-hizo-un-accidente-en-casa-hay-que-recogerlo.mp3  |  Luna hizo un accidente en casa. Hay que recogerlo.
+luna-esta-aburrida-juega-con-ella-dale-mimos-o-empuja-la-pel.mp3  |  Luna está aburrida. Juega con ella: dale mimos o empuja la pelota del parque.
+luna-esta-enfermita-la-veterinaria-en-3d-se-esta-construyend.mp3  |  Luna está enfermita. La veterinaria en 3D se está construyendo: pide a un adulto que abra el juego 2D.
+hoy-toca-vacuna-la-veterinaria-en-3d-se-esta-construyendo-pi.mp3  |  Hoy toca vacuna. La veterinaria en 3D se está construyendo: pide a un adulto que abra el juego 2D.
+toca-la-pastilla-contra-los-bichitos-pide-a-un-adulto-que-ab.mp3  |  Toca la pastilla contra los bichitos. Pide a un adulto que abra el juego 2D.
+luna-esta-feliz-vamos-al-parque-a-empujar-la-pelota.mp3  |  ¡Luna está feliz! Vamos al parque a empujar la pelota.
+glu-glu.mp3  |  ¡Glu glu!
+un-premio.mp3  |  ¡Un premio!
+nic-nic.mp3  |  ¡Ñic ñic!
+siesta.mp3  |  Siesta
+limpita.mp3  |  ¡Limpita!
+que-suave.mp3  |  ¡Qué suave!
+unas-cortas.mp3  |  Uñas cortas
+dientes-limpios.mp3  |  ¡Dientes limpios!
+pastilla-tomada.mp3  |  ¡Pastilla tomada!
+que-valiente.mp3  |  ¡Qué valiente!
+a-pasear.mp3  |  ¡A pasear!
+descanso.mp3  |  Descanso
+cuac-cuac.mp3  |  ¡Cuac cuac!
+splash.mp3  |  ¡Splash!
+.mp3  |  💧
+.mp3  |  🧸
+siestita.mp3  |  Siestita
+.mp3  |  🧽
+.mp3  |  🛁
+.mp3  |  🖌️
+esta-es-la-casa-de-luna-aqui-come-bebe-duerme-y-se-bana-toca.mp3  |  Esta es la casa de Luna. Aquí come, bebe, duerme y se baña. Toca un dibujo para cuidarla.
+esta-es-la-veterinaria-cuando-una-jeringa-salta-toca-vacuna-.mp3  |  Esta es la veterinaria. Cuando una jeringa salta, toca Vacuna. La pastilla quita los bichitos. Si Luna está enfermita, toca Curar.
+esta-es-la-tienda-con-los-huesos-que-encuentras-compras-prem.mp3  |  Esta es la tienda. Con los huesos que encuentras compras premios, juguetes y ropa para Luna.
+esta-es-la-escuela-elige-un-truco-mira-las-flechas-y-repitel.mp3  |  Esta es la escuela. Elige un truco, mira las flechas y repítelas. ¡Así Luna aprende!
+este-es-el-parque-juega-a-la-pelota-para-ganar-huesos-o-da-u.mp3  |  Este es el parque. Juega a la pelota para ganar huesos, o da un paseo.
+este-es-el-bosque-lleva-a-luna-saltando-hasta-la-casita-y-re.mp3  |  Este es el bosque. Lleva a Luna saltando hasta la casita y recoge huesos por el camino.
+este-es-el-lago-mira-los-patos-y-bebe-agua-fresca-del-bebede.mp3  |  Este es el lago. Mira los patos y bebe agua fresca del bebedero.
+otra-vez.mp3  |  ¡Otra vez!
+bien.mp3  |  ¡Bien!
+muy-bien.mp3  |  ¡Muy bien!
+genial.mp3  |  ¡Genial!
+veterinaria.mp3  |  Veterinaria
+tienda.mp3  |  Tienda
+escuela.mp3  |  Escuela
+bosque.mp3  |  Bosque
+parque.mp3  |  Parque
+lago.mp3  |  Lago
+mimos.mp3  |  Mimos

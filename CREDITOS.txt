@@ -1,0 +1,31 @@
+Luna, mi cachorrita — créditos de recursos de terceros
+=====================================================
+
+Sonidos de perro (recortados, normalizados y convertidos a WAV mono en js/sounds.js)
+--------------------------------------------------------------------------------
+- «Barking of a dog.ogg» — autor: Amada44 — licencia CC BY-SA 3.0
+  https://commons.wikimedia.org/wiki/File:Barking_of_a_dog.ogg
+  (clips: bark1, bark2, woof2)
+- «Barking of a dog 2.ogg» — autor: Amada44 — licencia CC BY-SA 3.0
+  https://commons.wikimedia.org/wiki/File:Barking_of_a_dog_2.ogg
+  (clips: bark3, bark4)
+- «Puppy at a night.ogg» — autor: Knites — licencia CC0 (dominio público)
+  https://commons.wikimedia.org/wiki/File:Puppy_at_a_night.ogg
+  (clips: yip, whine, yap)
+
+Los recortes derivados de obras CC BY-SA 3.0 se comparten bajo la misma licencia
+(https://creativecommons.org/licenses/by-sa/3.0/). Cambios: recorte, normalización
+de volumen, fundidos de 12 ms, mezcla a mono y remuestreo a 22 050 Hz.
+
+Bibliotecas
+-----------
+- three.js r187 — licencia MIT — https://threejs.org (incluida en 3d/luna3d.js)
+
+Tipografías (cargadas desde Google Fonts)
+-----------------------------------------
+- Press Start 2P, Pixelify Sans — SIL Open Font License
+
+Voz
+---
+- La voz usa la síntesis de voz del propio navegador/sistema (Web Speech API);
+  no se incluye ningún audio de voz grabado.
