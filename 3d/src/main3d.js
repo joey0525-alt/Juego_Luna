@@ -53,14 +53,20 @@ function sfx(kind) {
 
 // ====================== Render ======================
 const canvas = $('#c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(W.devicePixelRatio, 1.5));
+// Modo ligero: tablets y móviles (GPU modesta). ?hd=1 fuerza calidad alta, ?lite=1 fuerza ligero.
+const QS = new URLSearchParams(location.search);
+const LITE = QS.has('lite') || (!QS.has('hd') && (W.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && !W.matchMedia('(pointer: fine)').matches)));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !LITE, powerPreference: LITE ? 'low-power' : 'default' });
+// En ligero se limita a ~1,3 megapíxeles por cuadro (en una tablet 1920×1200 renderiza a 0,75).
+const pixelRatio = () => LITE ? Math.min(1, Math.sqrt(1.3e6 / (W.innerWidth * W.innerHeight))) : Math.min(W.devicePixelRatio, 1.5);
+renderer.setPixelRatio(pixelRatio());
 renderer.setSize(W.innerWidth, W.innerHeight);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !LITE;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 const camera = new THREE.PerspectiveCamera(42, W.innerWidth / W.innerHeight, 0.1, 220);
 W.addEventListener('resize', () => {
   camera.aspect = W.innerWidth / W.innerHeight; camera.updateProjectionMatrix();
+  renderer.setPixelRatio(pixelRatio());
   renderer.setSize(W.innerWidth, W.innerHeight);
 });
 
@@ -117,7 +123,7 @@ function sprite(emoji, size = 1, bubble = false) {
 function lights(scene) {
   const hemi = new THREE.HemisphereLight('#dff1ff', '#a6d68a', 1.7);
   const sun = new THREE.DirectionalLight('#fff4e0', 2.3);
-  sun.castShadow = true;
+  sun.castShadow = !LITE;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 60 });
   sun.shadow.bias = -0.0008;
@@ -396,11 +402,12 @@ function buildTown() {
     addTree(x, z, forest || r() < 0.35, 0.8 + r() * 0.5);
   }
   // flores (instanciadas)
-  const fl = new THREE.InstancedMesh(G.sph(0.12, 6, 5), new THREE.MeshToonMaterial({ gradientMap: grad }), 420);
+  const FLOWERS = LITE ? 160 : 420;
+  const fl = new THREE.InstancedMesh(G.sph(0.12, 6, 5), new THREE.MeshToonMaterial({ gradientMap: grad }), FLOWERS);
   const cols = ['#ff6b8b', '#ffd23f', '#ffffff', '#b98cff', '#ff9f43'].map(c => new THREE.Color(c));
   const mtx = new THREE.Matrix4();
   let n = 0;
-  for (let i = 0; i < 2000 && n < 420; i++) {
+  for (let i = 0; i < 2000 && n < FLOWERS; i++) {
     const x = BOUNDS.x0 + r() * (BOUNDS.x1 - BOUNDS.x0), z = BOUNDS.z0 + r() * (BOUNDS.z1 - BOUNDS.z0);
     if (onPath(x, z) || PL.some(pl => pl.w && Math.abs(x - pl.x) < pl.w / 2 + 0.8 && Math.abs(z - pl.z) < pl.d / 2 + 0.8) || near(x, z, 17, 7, 5.2)) continue;
     mtx.makeTranslation(x, 0.12, z); fl.setMatrixAt(n, mtx); fl.setColorAt(n, cols[Math.floor(r() * cols.length)]); n++;
