@@ -408,26 +408,12 @@ function funExtraIdeas(p, inValleyNow) {
   return out;
 }
 
-// ====================== Recordatorios (app instalada) ======================
+// ====================== App instalable (sin avisos por ahora) ======================
 function registerSW(base) {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
   navigator.serviceWorker.register(base + 'sw.js', { scope: base }).catch(() => { /* sin app */ });
-  // la última visita queda guardada para que el aviso sepa si pasó un día sin jugar
-  if ('caches' in window) caches.open('luna-meta').then(c => c.put(new Request(base + '__last-visit'), new Response(String(Date.now())))).catch(() => { /* */ });
 }
-async function enableReminders() {
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'Este aparato no permite avisos.';
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return 'Sin permiso para avisos.';
-  const reg = await navigator.serviceWorker.ready;
-  try {
-    if ('periodicSync' in reg) { await reg.periodicSync.register('luna-reminder', { minInterval: 12 * 60 * 60 * 1000 }); return '🔔 Listo: si pasa un día sin jugar, Luna te avisa (con el juego instalado como app).'; }
-  } catch (e) { /* */ }
-  reg.showNotification('🐶 Luna', { body: '¡Así se verán los avisos de Luna!', icon: reg.scope + 'icon.svg' });
-  return '🔔 Avisos activados. Para que lleguen solos, instala el juego como app (menú del navegador → Instalar).';
-}
-const remindersHTML = () => `<h4>🔔 Recordatorios</h4><p class="small">Si instalan el juego como app en la tablet, Luna puede avisar cuando pasa un día sin jugar.</p><button class="btn" data-reminders>🔔 Activar avisos</button> <span class="small" id="rem-msg"></span>`;
-document.addEventListener('click', async ev => { const b = ev.target.closest('[data-reminders]'); if (!b) return; const m = await enableReminders(); const el = document.getElementById('rem-msg'); if (el) el.textContent = m; });
+const remindersHTML = () => '';   // avisos desactivados a pedido de la familia
 
 // ====================== Nombre (cambiar desde el diario) ======================
 function renameHTML(p) { return `<div class="result"><h2>✏️🐶</h2><input id="rename-in" class="xinput" maxlength="14" value="${esc(petName(p))}" aria-label="Nombre de la perrita"><div class="xgrid">${['Luna', 'Lola', 'Kira', 'Nala', 'Maya', 'Coco'].map(n => `<button class="xbtn" data-x="setname:${n}">${n}</button>`).join('')}</div><button class="xbtn big" data-x="setname:">✔ Listo</button></div>`; }

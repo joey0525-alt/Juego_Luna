@@ -1,9 +1,10 @@
 /* Luna: app instalable. Primero la red (así siempre llega la versión nueva); sin conexión, lo guardado.
-   Con el juego instalado, un aviso suave si pasó un día sin jugar (sincronización periódica). */
-const CACHE = 'luna-v5';
+   Sin avisos: si alguien los había activado, se quitan. */
+const CACHE = 'luna-v7';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
-  for (const k of await caches.keys()) if (k !== CACHE && k !== 'luna-meta') await caches.delete(k);
+  for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
+  try { if (self.registration.periodicSync) await self.registration.periodicSync.unregister('luna-reminder'); } catch (e) { /* */ }
   await self.clients.claim();
 })()));
 self.addEventListener('fetch', e => {
@@ -20,20 +21,4 @@ self.addEventListener('fetch', e => {
       throw err;
     }
   })());
-});
-async function lastVisit() {
-  try { const c = await caches.open('luna-meta'); const r = await c.match(self.registration.scope + '__last-visit'); return r ? Number(await r.text()) : 0; } catch (e) { return 0; }
-}
-self.addEventListener('periodicsync', e => {
-  if (e.tag !== 'luna-reminder') return;
-  e.waitUntil((async () => {
-    const t = await lastVisit();
-    if (t && Date.now() - t > 20 * 60 * 60 * 1000) {
-      await self.registration.showNotification('🐶 ¡Luna te extraña!', { body: 'Hoy tiene un regalo esperándote. ¡Ven a jugar!', icon: self.registration.scope + 'icon.svg', badge: self.registration.scope + 'icon.svg', tag: 'luna' });
-    }
-  })());
-});
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  e.waitUntil(self.clients.openWindow(self.registration.scope + '3d/?v=3'));
 });
