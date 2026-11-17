@@ -2638,7 +2638,9 @@ document.addEventListener('click', e => {
   else if (a && (where === 'lake' || ['ducks', 'drink', 'splash', 'closelake', 'duckfeed'].includes(a))) lakeAct(a);
   else if (a && (a.startsWith('level:') || a === 'closeforest')) forestAct(a);
   else if (a) act(a);
-  if (b.dataset.pick) startGame(W.root.profiles.find(x => x.id === b.dataset.pick));
+  if (b.dataset.pick) { const pr = W.root.profiles.find(x => x.id === b.dataset.pick); b.disabled = true; Cloud.refresh(pr).finally(() => startGame(pr)); }
+  if (b.dataset.cloud) Cloud.openAccount(W.root.profiles.find(x => x.id === b.dataset.cloud), showPicker);
+  if (b.dataset.cloudlogin !== undefined) Cloud.openLogin(showPicker);
   if (b.dataset.coat) { document.querySelectorAll('[data-coat]').forEach(x => x.classList.toggle('sel', x === b)); }
 });
 $('#new-form').addEventListener('submit', e => {
@@ -2663,7 +2665,7 @@ buildVet(); buildShop(); buildSchool(); buildLakeExtras();
 camera.position.set(-16, 10, 2); camera.lookAt(-16, 0.6, -9);
 function showPicker() {
   const list = W.root.profiles;
-  $('#pick-list').innerHTML = list.map(pr => `<button class="slot" data-pick="${pr.id}">${esc3(pr.avatar)} ${esc3(pr.name)} <span>${STAGE_ICON3[stageOf(dayAt(pr.pet, now(pr.pet))).id]} ▶</span></button>`).join('');
+  $('#pick-list').innerHTML = list.map(pr => `<div class="slot-row"><button class="slot" data-pick="${pr.id}">${esc3(pr.avatar)} ${esc3(pr.name)} <span>${STAGE_ICON3[stageOf(dayAt(pr.pet, now(pr.pet))).id]} ▶</span></button><button class="slot-cloud${Cloud.linked(pr) ? ' on' : ''}" data-cloud="${pr.id}" aria-label="${Cloud.linked(pr) ? 'En la nube' : 'Guardar en la nube'}: ${esc3(pr.name)}">☁️</button></div>`).join('');
   $('#avatars3').innerHTML = AVATARS3.map((a, i) => `<button type="button" class="avatar ${i === 0 ? 'sel' : ''}" data-avatar="${a}" aria-label="Tu cara ${i + 1}">${a}</button>`).join('');
   $('#coats').innerHTML = Object.entries(COATS).map(([k, c], i) => `<button type="button" class="coat ${i === 0 ? 'sel' : ''}" data-coat="${k}" style="background:${c.fur}" aria-label="${c.name}"></button>`).join('');
   $('#voice-slot').innerHTML = voiceSettingsHTML();
@@ -2672,13 +2674,15 @@ function showPicker() {
   if (!dog) { dog = buildDog({ coat: 'dorado', day: 10, acc: { worn: 'lazo' } }); town.add(dog.root); }
 }
 const resume = W.root.activeId && W.root.profiles.find(x => x.id === W.root.activeId);
-if (resume) startGame(resume); else showPicker();
+if (resume) Cloud.refresh(resume).finally(() => startGame(resume)); else showPicker();
 // vista previa mientras está el selector
 (function idle() {
   if (current) return;
-  dog.root.position.set(-16, 0, -9);
-  animateDog(dog, 1 / 60, { mode: 'happy' });
-  camera.position.set(-16, 3, -3.5); camera.lookAt(-16, 1, -9);
+  if (dog) {   // al reanudar una partida, dog aún no existe mientras se consulta la nube
+    dog.root.position.set(-16, 0, -9);
+    animateDog(dog, 1 / 60, { mode: 'happy' });
+    camera.position.set(-16, 3, -3.5); camera.lookAt(-16, 1, -9);
+  }
   requestAnimationFrame(idle);
 })();
 Object.assign(W, { renderer, town, home, luna, kidS, act, startGame, input, dbg3: { buildAgility3, buildDucks3, buildMemory3, startHide3, memFlip3, closeCard3, digTreasure3, get mini() { return mini; }, get hide3() { return hide3; }, get treasure3() { return treasure3; }, get where() { return where; }, guideGo3, idleNudge3, treeList, get autoWalk() { return autoWalk; }, get goal3() { return goal3; }, setIdle: v => { lastInputT = v; } }, step3d: (dt, draw) => { update(dt); updateParts(dt); if (draw) renderer.render(scene, camera); } });   // depuración / pruebas

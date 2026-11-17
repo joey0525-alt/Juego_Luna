@@ -18,6 +18,7 @@
     <div class="title-dog" id="title-dog" aria-hidden="true"></div>
     <h1 id="t-title">LUNA</h1>
     <div id="profile-list" class="slots"></div>
+    <button class="btn big newgame" data-cloudlogin aria-label="Entrar con mi usuario">☁️ Entrar</button>
     <button class="btn primary big newgame" data-nav="create" aria-label="Nueva partida">➕ 🐶</button>
     <a class="btn big newgame" href="3d/index.html" aria-label="Probar Luna en 3D">✨ 3D</a>
     <details class="parents-box">
@@ -26,7 +27,7 @@
       Controles: flechas o WASD para caminar, Espacio para entrar a los lugares (en el móvil, la cruceta y el botón A). El juego habla en voz alta y Luna ladra con sonidos de perro reales; todo se silencia con 🔊. Aquí abajo pueden elegir la voz (★ = más natural; en Edge suelen estar las voces «Natural»).
       En el 📖 diario, la sección «Para papás» muestra vacunas, peso y el registro de cada día.</p>
       <div id="voice-slot"></div>
-      <p>El progreso se guarda en este navegador. Copia de seguridad:</p>
+      <p>El progreso se guarda en este navegador. Con ☁️ cada partida puede tener usuario y PIN para seguir en otro aparato (tablet, PC…). Copia de seguridad:</p>
       <div class="row-btns"><button class="btn" data-export>💾 Exportar</button><button class="btn" data-import>📂 Importar</button></div>
       <input type="file" id="import-file" accept="application/json,.json" hidden>
     </details>
@@ -72,6 +73,7 @@
 <script src="js/voice.js"></script>
 <script src="js/sounds.js"></script>
 <script src="js/music.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/pixel.js"></script>
 <script src="js/world.js"></script>
 <script src="js/minigames.js"></script>

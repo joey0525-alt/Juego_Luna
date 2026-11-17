@@ -103,9 +103,10 @@ function renderProfiles() {
       <button class="slot-play" data-open="${pr.id}" aria-label="Jugar con ${esc(pr.name)}">
         ${spriteImg({ coat: p.coat, size: st.size, pose: 'stand', collar: d >= 8, acc: p.acc.worn }, 3)}
         <span class="slot-name">${esc(pr.avatar)} ${esc(pr.name)}</span>
-        <span class="slot-meta">${STAGE_ICON[st.id]} 🦴${p.bones} 🏅${p.milestones.length}</span>
+        <span class="slot-meta">${STAGE_ICON[st.id]} 🦴${p.bones} 🏅${p.milestones.length}${Cloud.linked(pr) ? ' ☁️' : ''}</span>
         <span class="slot-go">▶</span>
       </button>
+      <button class="slot-del" data-cloud="${pr.id}" aria-label="${Cloud.linked(pr) ? 'En la nube' : 'Guardar en la nube'}: ${esc(pr.name)}">☁️</button>
       <button class="slot-del" data-del="${pr.id}" aria-label="Borrar partida de ${esc(pr.name)}">🗑️</button></div>`;
   }).join(''));
 }
@@ -130,7 +131,8 @@ function createProfile(ev) {
 async function deleteProfile(id) {
   const pr = root.profiles.find(x => x.id === id);
   if (!pr) return;
-  if (!await confirmWin('🗑️ ¿Borrar?', `${pr.name}: se borrará su Luna para siempre.`, '🗑️ Borrar', true)) return;
+  const msg = Cloud.linked(pr) ? `${pr.name}: se quita de este aparato. Sigue guardada en la nube (☁️ ${pr.cloud.user}).` : `${pr.name}: se borrará su Luna para siempre.`;
+  if (!await confirmWin('🗑️ ¿Borrar?', msg, '🗑️ Borrar', true)) return;
   root.profiles = root.profiles.filter(x => x.id !== id);
   saveRoot(); renderProfiles();
 }
@@ -542,7 +544,7 @@ function weightChart(p) {
 // ---------- Exportar / importar ----------
 function exportSave() {
   saveRoot();
-  const blob = new Blob([JSON.stringify(root)], { type: 'application/json' });
+  const blob = new Blob([Cloud.exportJSON(root)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `luna-partidas-${new Date().toISOString().slice(0, 10)}.json`;

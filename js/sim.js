@@ -58,6 +58,7 @@ function saveRoot() {
     if (prev && prev !== json) localStorage.setItem(SAVE_KEY + '.bak', prev);
     localStorage.setItem(SAVE_KEY, json);
     lastSaveAt = Date.now();
+    if (typeof Cloud !== 'undefined' && !Cloud.quiet) Cloud.onSave();
   } catch (e) {
     showToast('⚠️ No se pudo guardar el progreso en este navegador.');
   }

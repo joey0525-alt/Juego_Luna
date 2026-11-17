@@ -5,6 +5,8 @@ Juego para peques: cría a Luna desde cachorrita, pasea con ella por el pueblo, 
 - **Jugar en 3D:** abre `3d/index.html` (en GitHub Pages: `/3d/`).
 - **Versión 2D:** `index.html`.
 
-Funciona en PC y en tablets (joystick y botón A en pantalla). El progreso se guarda en el navegador de cada aparato.
+Funciona en PC y en tablets (joystick y botón A en pantalla). El progreso se guarda en el navegador de cada aparato. En tablets y móviles la versión 3D usa un modo ligero (sin sombras); `?hd=1` lo desactiva y `?lite=1` lo fuerza.
+
+**Partidas en la nube:** con el botón ☁️ de cada partida se crea un usuario + PIN (sin email). En otro aparato, «☁️ Entrar» con ese usuario y PIN descarga la partida, y desde ahí se sincroniza sola (`js/cloud.js`, proyecto Supabase `luna-cachorrita`). La partida más reciente en la nube gana si se juega en dos aparatos a la vez. 5 PIN fallidos bloquean la cuenta 10 minutos. Un PIN olvidado no se puede recuperar desde el juego.
 
 Código 3D en `3d/src/main3d.js`; `3d/luna3d.js` es el paquete generado con esbuild (incluye three.js r187, MIT). Créditos de sonidos en `CREDITOS.txt`.

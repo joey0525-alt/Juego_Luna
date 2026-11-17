@@ -143,7 +143,9 @@ document.addEventListener('click', ev => {
   if (d.say !== undefined && !d.do) { speak(d.say); pop(t.textContent.trim().slice(0, 4)); return; }
   if (d.win) { closeWin(d.win); return; }
   if (d.nav) { if (d.nav === 'profiles' && current) saveRoot(); return showScreen(d.nav); }
-  if (d.open) return openProfile(d.open);
+  if (d.open) { const pr = root.profiles.find(x => x.id === d.open); if (pr && Cloud.linked(pr)) t.disabled = true; return Cloud.refresh(pr).finally(() => openProfile(d.open)); }
+  if (d.cloud) return Cloud.openAccount(root.profiles.find(x => x.id === d.cloud), renderProfiles);
+  if (d.cloudlogin !== undefined) return Cloud.openLogin(renderProfiles);
   if (d.del) return deleteProfile(d.del);
   if (d.do) { if (d.say) speak(d.say); return placeDo(d.do); }
   if (d.place) return openPlace(d.place);
@@ -209,7 +211,7 @@ function boot() {
   $('[data-mute]').textContent = muted ? '🔇' : '🔊';
   $('[data-music]').textContent = Music.isOn() ? '🎵' : '🔕';
   const resume = root.activeId && root.profiles.find(x => x.id === root.activeId);
-  if (resume) openProfile(resume.id); else showScreen('profiles');
+  if (resume) Cloud.refresh(resume).finally(() => openProfile(resume.id)); else showScreen('profiles');
   requestAnimationFrame(frame);
 }
 (document.fonts && document.fonts.load ? Promise.race([document.fonts.load('8px "Press Start 2P"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve()).then(boot, boot);
