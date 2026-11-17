@@ -139,6 +139,9 @@ document.addEventListener('click', ev => {
   audioUnlock();
   const d = t.dataset;
   if (d.mem !== undefined) return memFlip(Number(d.mem));
+  if (d.quiz !== undefined) return quizAnswer2(d.quiz === '1');
+  if (d.near !== undefined) { if (world.nearX) world.nearX.run(); return; }
+  if (t.id === 'guideSkip') return skipGoal();
   if (t.getAttribute('aria-disabled') === 'true') { const b = t.querySelector('.badge'); pop(b ? b.textContent : '✋'); speak(d.say); sfx('hurt'); return; }
   if (d.say !== undefined && !d.do) { speak(d.say); pop(t.textContent.trim().slice(0, 4)); return; }
   if (d.win) { closeWin(d.win); return; }
@@ -150,7 +153,7 @@ document.addEventListener('click', ev => {
   if (d.do) { if (d.say) speak(d.say); return placeDo(d.do); }
   if (d.place) return openPlace(d.place);
   if (d.locked) return showLockedCard(PLACES.find(x => x.id === d.locked));
-  if (d.guide !== undefined) { sayGuide(); if (goalNow && goalNow.place && state.mode === 'world') { const pl = PLACES.find(x => x.id === goalNow.place); if (world.near && world.near.id === pl.id) openPlace(pl.id); else goTo(pl.trigger[0], pl.trigger[1], pl.id); } return; }
+  if (d.guide !== undefined) { sayGuide(); guideGo(); return; }
   if (d.help) { speak(PLACE_HELP[d.help]); hintInPanel(); return; }
   if (d.wake !== undefined) return wakeUp();
   if (d.diary !== undefined) return openDiary();

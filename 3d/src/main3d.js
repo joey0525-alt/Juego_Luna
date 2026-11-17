@@ -1589,12 +1589,11 @@ function openDiary3() {
     { key: 'walk1', icon: '🌳' }, { key: 'bath1', icon: '🛁' }, { key: 'vacunas', icon: '🛡️' }, { key: 'allbones', icon: '🔍' }, { key: 'tutorial', icon: '🐦' },
     { key: 'treasure1', icon: '💰' }, { key: 'squirrel', icon: '🐿️' }, { key: 'hide1', icon: '🙈' }, { key: 'agility', icon: '🏃' }, { key: 'ducks10', icon: '🦆' }, { key: 'memory', icon: '🃏' },
     ...LEVEL_DEFS.map(L => ({ key: 'lvl' + L.id, icon: ['🌲', '⛰️', '💎'][L.id - 1] })), ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon })),
-    { key: 'dogfriend', icon: '🐕' }, { key: 'dogs3', icon: '🐾' }, { key: 'dogpark', icon: '🥏' }, { key: 'shelter', icon: '🏡' }, { key: 'groom', icon: '✂️' }, { key: 'icecream', icon: '🍦' }, { key: 'quiz', icon: '🧠' },
-    { key: 'ranger', icon: '🧭' }, { key: 'quest1', icon: '📜' }, { key: 'mirador', icon: '🗼' }, { key: 'crystal', icon: '💎' }, { key: 'chest', icon: '🗝️' }, { key: 'questall', icon: '🏆' }];
+    ...EXTRA_STICKERS];
   const got = new Set(p.milestones.map(m => m.key));
   speak('Diario de Luna');
   card3(`<div class="result"><h2>📖</h2>
-    <div class="weekbox"><span>${STAGE_ICON3[st.id]} ${p.day}</span><span>⚖️ ${fmtWeight(p.weight)}</span><span>🔥 ${p.streak}</span>${p.rpg && p.rpg.met ? `<span>${RANKS3[rankOf3(p.rpg.xp)]}</span>` : ''}</div>
+    <div class="weekbox"><span>${STAGE_ICON3[st.id]} ${p.day}</span><span>⚖️ ${fmtWeight(p.weight)}</span><span>🔥 ${p.streak}</span>${p.rpg && p.rpg.met ? `<span>${RANKS[rankOf(p.rpg.xp)]}</span>` : ''}</div>
     <div class="today">${r.map(x => `<span class="tday ${x.have >= x.need ? 'ok' : ''}"><i>${x.icon}</i><b>${x.have >= x.need ? '⭐' : `${Math.min(x.have, x.need)}/${x.need}`}</b></span>`).join('')}</div>
     <div class="stickers">${all.map(m => `<span class="stk ${got.has(m.key) ? '' : 'off'}">${got.has(m.key) ? m.icon : '❔'}</span>`).join('')}</div></div>`);
 }
@@ -1609,8 +1608,8 @@ function guideCheck3() {
     t.seen.v2 = true;
     for (const pl of PL) if (pl.spot && p.day >= (pl.minDay || 1)) t.seen['open-' + pl.id] = true;
     t.focus = 'aventura'; t.visited.aventura = false; saveRoot();
-    speak('¡El pueblo creció! Hay perritos nuevos, un parque para perros, tiendas nuevas y el Valle Aventura para explorar. Mira los corazones: verde es amistoso, amarillo tímido y la señal roja es peligro.');
-    return card3(`<div class="result"><h2>🎉</h2><div class="howto"><div><span>🐕🐩🦮</span></div><div><span>💚</span><i>👋</i><span>💛</span><i>🤫</i><span>⚠️</span><i>🚶↩️</i></div><div><span>✂️ 🍦 🥐 📚 🏡</span></div><div><span>🗺️ 🍄 🪶 💎 🗝️</span></div></div></div>`);
+    speak(NEWS_SAY);
+    return card3(NEWS_HTML);
   }
   for (const pl of PL) {
     if ((pl.minDay || 1) > 1 && p.day >= pl.minDay && !t.seen['open-' + pl.id]) {
@@ -1724,79 +1723,27 @@ function skipGoal3() {
 // Ideas para los tiempos muertos. Siempre hay alguna: si Pío ya repitió una sin que pasara nada, prueba la siguiente.
 const skipIdeas3 = new Set();
 let skipDay3 = 0;
-function softGoal3(p, sleeping, waiting) {
+function softGoal3(p, sleeping) {
   if (skipDay3 !== p.day) { skipDay3 = p.day; skipIdeas3.clear(); }
-  const g = today(p).games || {}, d = p.day, tired = sleeping || !!cantExercise(p), withL = !sleeping && !p.asleep;
-  const pre = sleeping ? 'Luna está durmiendo. Mientras descansa, ' : '';
-  const cap = s2 => s2.replace(/^([¡¿]?)(.)/, (m0, a1, c) => a1 + c.toUpperCase());
-  const sayP = x => (sleeping ? pre + x.replace(/^([¡¿]?)(.)/, (m0, a1, c) => a1 + c.toLowerCase()) : cap(x));
   const list = [];
-  if (boneMeshes.length) list.push({ icon: '🦴', key: 'bones', say: sayP('¡busca los huesos escondidos! Sigue la flecha amarilla.') });
-  if (treasure3) list.push({ icon: '💰', key: 'treasure', say: sayP('hay un tesoro escondido. Camina y mira el globito: si sale fuego, ¡estás muy cerca!') });
-  // Valle Aventura: conocer al guardabosques y luego su misión (siempre hay una)
-  const R = rpg3(p), q = questNow3(p);
-  if (!R.met) list.push({ icon: '🗺️', key: 'valley', place: 'aventura', doId: 'sp:quest', say: sayP('¡hay un valle nuevo para explorar! Ve con el guardabosques al Valle Aventura, al sureste del pueblo.') });
-  else if (q) list.push(questGoal3(p, q, sayP));
-  // Ideas de hoy (cada una una vez al día), con lugares viejos y nuevos
-  const ideas = [
-    { id: 'memory', ok: true, icon: '🃏', place: 'casa', doId: 'memory', say: '¿jugamos a la memoria? Ve a la casa y toca Memoria.', again: '¿otra partida de memoria? Ve a la casa.' },
-    { id: 'ducks', ok: true, icon: '🦆', place: 'lago', doId: 'duckfeed', say: '¡los patos tienen hambre! Ve al lago y dales su comida.', again: '¡los patos quieren más comida! Ve al lago.' },
-    { id: 'story', ok: true, icon: '📖', place: 'biblioteca', doId: 'sp:story', say: '¡hora del cuento! Ve a la biblioteca a aprender cosas de perros.', again: '¿otro dato perruno? Ve a la biblioteca.' },
-    { id: 'quiz', ok: (today(p).quiz || 0) < 3, icon: '❓', place: 'biblioteca', doId: 'sp:quiz', say: '¿cuánto sabes de perros? Juega a las preguntas en la biblioteca.', again: '¿más preguntas? ¡Vamos a la biblioteca!' },
-    { id: 'dogs', ok: withL || sleeping, icon: '🐕', key: 'dogs', target: true, say: 'busca un perro con corazón verde 💚 y salúdalo. Si tiene dueño, ¡pregúntale primero!', again: '¡hay más perritos en el pueblo! Busca los corazones verdes 💚.' },
-    { id: 'shelter', ok: true, icon: '🏡', place: 'refugio', doId: 'sp:visit', say: 'los perritos del refugio quieren mimos. ¡Vamos a visitarlos!', again: '' },
-    { id: 'agility', ok: d >= 3 && !tired, icon: '🏃', place: 'parque', doId: 'agility', say: '¡carrera de obstáculos! Ve al parque y toca Carrera.', again: '¿otra carrera de obstáculos? ¡Vamos al parque!' },
-    { id: 'dogpark', ok: d >= 3 && !tired, icon: '🐕', place: 'perros', doId: 'sp:friends', say: '¡Luna quiere jugar con otros perritos! Ve al parque para perros.', again: '¿más juegos en el parque para perros? ¡Prueba el disco!' },
-    { id: 'frisbee', ok: d >= 3 && !tired, icon: '🥏', place: 'perros', doId: 'sp:frisbee', say: '¡lanza el disco a Luna en el parque para perros!', again: '¡otra ronda de disco en el parque para perros!' },
-    { id: 'hide', ok: d >= 5 && !tired, icon: '🙈', place: 'parque', doId: 'hide', say: '¡juguemos al escondite! Ve al parque y toca Escondite.', again: '¿otra vez al escondite? ¡Vamos al parque!' },
-    { id: 'forest', ok: d >= 3 && !tired, icon: '🌲', place: 'bosque', doId: 'level:', say: '¡aventura en el bosque! Lleva a Luna saltando hasta la casita.', again: '¡vamos de aventura al bosque!' },
-    { id: 'mirador', ok: R.met, icon: '🗼', tgt: () => ({ x: valleyPOI.mirador[0], z: valleyPOI.mirador[1] }), say: 'sube al mirador del Valle Aventura para ver todo el pueblo.', again: '' },
-    { id: 'icecream', ok: withL && p.bones >= 2, icon: '🍦', place: 'heladeria', doId: 'sp:icecream', say: '¡hace calor! Invita a Luna a un helado para perros en la heladería.', again: '' },
-    { id: 'groom', ok: withL && d >= 3 && p.bones >= 4 && (p.stats.higiene < 80 || d - (p.lastDone.unas || 0) >= 7), icon: '✂️', place: 'peluqueria', doId: 'sp:groom', say: 'Luna necesita un buen peinado. ¡Vamos a la peluquería canina!', again: '' },
-    { id: 'smell', ok: withL, icon: '🥐', place: 'panaderia', doId: 'sp:smell', say: '¡qué rico huele la pastelería! Lleva a Luna a olerla.', again: '' },
-  ].filter(x => x.ok);
-  const mk = (it, txt, k) => {
-    const o = { icon: it.icon, place: it.place, doId: it.doId, key: k + it.id, say: sayP(txt) };
-    if (it.target) { o.place = undefined; o.target = () => { const dg = nearestDog3(999, x => x.def.mood === 'friendly' && !((today(p).dogs || {})[x.def.id])); return dg && { x: dg.x, z: dg.z }; }; }
-    if (it.tgt) { o.place = undefined; o.target = it.tgt; }
-    return o;
-  };
-  for (const it of ideas) if (!g[it.id] && !(it.id === 'dogs' && Object.keys(today(p).dogs || {}).some(k => !k.startsWith('ask-')))) list.push(mk(it, it.say, 'fun-'));
-  if (p.bones >= 8) list.push({ icon: '🛒', key: 'shop', place: 'tienda', say: sayP('¡tienes muchos huesos! Ve a la tienda a comprarle algo bonito a Luna. Si prefieres guardarlos, toca Ahora no.') });
-  if (!sleeping && waiting && WAIT_SAY[waiting.icon]) list.push({ ...WAIT_SAY[waiting.icon], key: 'wait-' + waiting.icon });
-  for (const it of ideas) if (it.again) list.push(mk(it, it.again, 'again-'));
-  // Siempre queda algo: explorar el valle (setas, plumas, conejitos)
-  list.push({ icon: '🍄', key: 'explore', place: 'aventura', say: sayP('¡vamos a explorar el Valle Aventura! Busca setas brillantes, plumas y conejitos.') });
+  if (boneMeshes.length) list.push({ icon: '🦴', key: 'bones', say: '¡busca los huesos escondidos! Sigue la flecha amarilla.' });
+  if (treasure3) list.push({ icon: '💰', key: 'treasure', say: 'hay un tesoro escondido. Camina y mira el globito: si sale fuego, ¡estás muy cerca!' });
+  list.push(...funIdeas(p, sleeping, inValley(kidS.x, kidS.z)));   // ideas compartidas con el 2D (../js/extras.js)
+  if (p.rpg && p.rpg.respawn) { p.rpg.respawn = false; spawnValley3(p); }
   const k = sleeping ? 'zz-' : '';
-  list.forEach(x => { x.key = k + x.key; });
+  for (const x of list) { x.key = k + x.key; x.say = ideaSay(x.say, sleeping); if (typeof x.target === 'string') x.target = target3(p, x.target); }
   let pick = list.find(x => !skipIdeas3.has(x.key) && !isSkipped3(x.key));
   if (!pick) { skipIdeas3.clear(); pick = list.find(x => !isSkipped3(x.key)) || list[0]; }
   return pick;
 }
-// La misión del guardabosques convertida en sugerencia de Pío (con flecha al objeto más cercano)
-function questGoal3(p, q, sayP) {
-  const D = q.def, left = Math.max(0, (D.n || 1) - q.n), o = { icon: D.icon, key: 'quest-' + D.id, say: sayP(D.say.replace(/^Misión del día: /, '')) };
-  const nearestItem = item => () => { let best = null, bd = Infinity; for (const v of valleyItems) { if (v.item !== item) continue; const d = Math.hypot(v.x - kidS.x, v.z - kidS.z); if (d < bd) { bd = d; best = v; } } return best && { x: best.x, z: best.z }; };
-  if (D.type === 'collect') { if (inValley(kidS.x, kidS.z)) o.target = nearestItem(D.item); else o.place = 'aventura'; }
-  else if (D.type === 'visit') o.target = () => ({ x: valleyPOI.mirador[0], z: valleyPOI.mirador[1] });
-  else if (D.type === 'dog') o.target = () => { const dg = nearestDog3(999, x => x.def.mood !== 'grumpy' && !((today(p).dogs || {})[x.def.id])); return dg && { x: dg.x, z: dg.z }; };
-  else if (D.type === 'chest') o.target = rpg3(p).key ? () => ({ x: valleyPOI.chest[0], z: valleyPOI.chest[1] }) : inValley(kidS.x, kidS.z) ? nearestItem('llave') : null;
-  else if (D.type === 'flag') { if (p.items.premio > 0) { o.place = 'refugio'; o.doId = 'sp:treat'; } else { o.place = 'panaderia'; o.doId = 'sp:cookies'; } }
-  if (D.type === 'chest' && !o.target) o.place = 'aventura';
-  if (left > 1) o.say += ` Te faltan ${left}.`;
-  return o;
-}
-// Juegos que todavía no se jugaron hoy: Pío los sugiere para que nunca falte qué hacer
-function funIdea3(p) {
-  const g = today(p).games || {}, d = p.day, tired = !!cantExercise(p);
-  const ideas = [
-    { id: 'memory', ok: true, icon: '🃏', place: 'casa', doId: 'memory', say: '¿Jugamos a la memoria? Ve a la casa y toca Memoria.' },
-    { id: 'ducks', ok: true, icon: '🦆', place: 'lago', doId: 'duckfeed', say: '¡Los patos tienen hambre! Ve al lago y dales su comida.' },
-    { id: 'agility', ok: d >= 3 && !tired, icon: '🏃', place: 'parque', doId: 'agility', say: '¡Carrera de obstáculos! Ve al parque y toca Carrera.' },
-    { id: 'hide', ok: d >= 5 && !tired, icon: '🙈', place: 'parque', doId: 'hide', say: '¡Juguemos al escondite! Ve al parque y toca Escondite.' },
-  ];
-  const it = ideas.find(x => x.ok && !g[x.id]);
-  return it ? { icon: it.icon, place: it.place, doId: it.doId, say: it.say, key: 'fun-' + it.id } : null;
+// Objetivo de una idea → función que devuelve {x, z} para la flecha
+function target3(p, kind) {
+  const greeted = () => today(p).dogs || {};
+  if (kind === 'dog') return () => { const dg = nearestDog3(999, x => x.def.mood !== 'grumpy' && !greeted()[x.def.id]); return dg && { x: dg.x, z: dg.z }; };
+  if (kind === 'mirador') return () => ({ x: valleyPOI.mirador[0], z: valleyPOI.mirador[1] });
+  if (kind === 'chest') return () => ({ x: valleyPOI.chest[0], z: valleyPOI.chest[1] });
+  const item = kind.slice(5);
+  return () => { let best = null, bd = Infinity; for (const v of valleyItems) { if (v.item !== item) continue; const d = Math.hypot(v.x - kidS.x, v.z - kidS.z); if (d < bd) { bd = d; best = v; } } return best && { x: best.x, z: best.z }; };
 }
 let goal3 = null, spoken3 = '', speakT3 = 0;
 function refreshGuide3() {
@@ -1844,7 +1791,7 @@ function placeNow3() { return where === 'home' ? 'casa' : where === 'park' ? 'pa
 function placeHelp3() {
   const id = placeNow3();
   if (!id) return;
-  let say = PLACE_HELP3[id] || (SPOTS3[id] && SPOTS3[id].help) || '';
+  let say = PLACE_HELP3[id] || (SPOT_UI[id] && SPOT_UI[id].help) || '';
   if (goal3 && goal3.place === id) say += ' ' + goal3.say;                       // y lo que conviene hacer ahora
   else if (goal3 && goal3.place) say += ` Ahora toca ir a ${PL.find(x => x.id === goal3.place).name}. Toca Salir.`;
   speak(say);
@@ -2197,62 +2144,52 @@ function updateTownLife(dt, p, t) {
 }
 
 // ====================== Perros del pueblo ======================
-// Cada perro tiene tamaño, carácter (💚 amistoso, 💛 tímido, ⚠️ enojón) y puede pasear con su dueño o andar suelto.
-const DOG_MOOD = {
-  friendly: { icon: '💚', word: 'amistoso' },
-  shy: { icon: '💛', word: 'tímido' },
-  grumpy: { icon: '⚠️', word: '¡cuidado, está enojón!' },
+// Datos y reglas en ../js/extras.js (compartidos con el 2D). Aquí: dónde viven en el mapa 3D, cómo se mueven y se dibujan.
+const DOG_POS3 = {
+  toby: { route: [[-26, -7.4], [2, -7.4], [2, -10.6], [-26, -10.6]] },
+  rocco: { route: [[38, -7.4], [66, -7.4], [66, -10.6], [38, -10.6]] },
+  nube: { route: [[-18, 20.6], [8, 20.6], [8, 17.4], [-18, 17.4]] },
+  canela: { home: [3, 14], r: 4.5 }, bruno: { home: [-29, 0], r: 3.5 }, pipo: { home: [28, 8], r: 4 }, max: { home: [38, 3], r: 5 },
+  kira: { home: [58, 2], r: 4 }, coco: { home: [21, 28], r: 4 }, lola: { home: [25, 30], r: 4 }, thor: { home: [23, 31], r: 4 }, sol: { home: [58, 27], r: 4 },
 };
-const DOG_DEFS = [
-  { id: 'toby', name: 'Toby', size: 0.55, mood: 'friendly', ears: 'up', look: { fur: '#f4ece0', dark: '#c08040', light: '#ffffff', spots: true }, owner: { coat: '#ff8f6b', skin: '#f0c8a0', hair: '#6b4a2b' }, route: [[-26, -7.4], [2, -7.4], [2, -10.6], [-26, -10.6]] },
-  { id: 'rocco', name: 'Rocco', size: 1.25, mood: 'grumpy', ears: 'up', look: { fur: '#4a3a30', dark: '#2a1e18', light: '#a08060' }, owner: { coat: '#4a6aa8', skin: '#c88858', hair: '#2a1a10' }, route: [[38, -7.4], [66, -7.4], [66, -10.6], [38, -10.6]] },
-  { id: 'nube', name: 'Nube', size: 0.85, mood: 'shy', look: { fur: '#f8f8f8', dark: '#d8d8e0', light: '#ffffff' }, owner: { coat: '#c060a0', skin: '#f0c8a0', hair: '#d8d8e0' }, route: [[-18, 20.6], [8, 20.6], [8, 17.4], [-18, 17.4]] },
-  { id: 'canela', name: 'Canela', size: 0.9, mood: 'friendly', look: { fur: '#c8803c', dark: '#8a4a20', light: '#f0c890' }, home: [3, 14], r: 4.5 },
-  { id: 'bruno', name: 'Bruno', size: 1.3, mood: 'grumpy', ears: 'up', look: { fur: '#6a6a72', dark: '#3a3a42', light: '#a8a8b0' }, home: [-29, 0], r: 3.5 },
-  { id: 'pipo', name: 'Pipo', size: 0.5, mood: 'shy', look: { fur: '#e0c090', dark: '#a07840', light: '#fff0d0' }, home: [28, 8], r: 4 },
-  { id: 'max', name: 'Max', size: 1.0, mood: 'friendly', look: { fur: '#2c2c2c', dark: '#111111', light: '#d8b080' }, home: [38, 3], r: 5 },
-  { id: 'kira', name: 'Kira', size: 0.45, mood: 'grumpy', ears: 'up', look: { fur: '#e8b878', dark: '#9a6a38', light: '#fff0d8' }, home: [58, 2], r: 4 },
-  { id: 'coco', name: 'Coco', size: 0.5, mood: 'friendly', ears: 'up', look: { fur: '#ffffff', dark: '#e0b0b0', light: '#ffffff' }, home: [21, 28], r: 4, park: true },
-  { id: 'lola', name: 'Lola', size: 0.85, mood: 'friendly', look: { fur: '#a0a4b0', dark: '#646874', light: '#dcdee4', spots: true }, home: [25, 30], r: 4, park: true },
-  { id: 'thor', name: 'Thor', size: 1.35, mood: 'friendly', look: { fur: '#e0a050', dark: '#a8662c', light: '#f8d8a0' }, home: [23, 31], r: 4, park: true },
-  { id: 'sol', name: 'Sol', size: 0.8, mood: 'friendly', ears: 'up', look: { fur: '#d89048', dark: '#5a3a20', light: '#f8e0b0' }, home: [58, 27], r: 4 },
-];
 const townDogs = [];
 const leashMat3 = M('#e0403c');
 function buildTownDogs3() {
+  if (townDogs.length) return;
   for (const D of DOG_DEFS) {
+    const P = DOG_POS3[D.id];
     const d = buildDog({ look: D.look, ears: D.ears, day: D.owner || D.park ? 10 : 5, acc: { worn: null } });   // los sueltos no llevan collar
     d.root.scale.setScalar(D.size);
     const ind = sprite(DOG_MOOD[D.mood].icon, D.mood === 'grumpy' ? 0.95 : 0.75, true);
     town.add(d.root, ind);
-    const dg = { def: D, d, ind, x: 0, z: 0, ry: 0, tx: 0, tz: 0, wait: Math.random() * 2, mode: 'idle', sp: 0, growlT: 0, happyT: 0, fleeT: 0, near: false, asked: false };
+    const dg = { def: D, P, d, ind, x: 0, z: 0, ry: 0, tx: 0, tz: 0, wait: Math.random() * 2, sp: 0, growlT: 0, happyT: 0, fleeT: 0, near: false, asked: false };
     if (D.mood === 'grumpy') {   // zona de peligro: círculo rojo en el suelo
       dg.ring = new THREE.Mesh(new THREE.RingGeometry(2.6, 3.0, 32), new THREE.MeshBasicMaterial({ color: '#ff1a1a', transparent: true, opacity: 0.6, depthWrite: false }));
       dg.ring.rotation.x = -Math.PI / 2; town.add(dg.ring);
     }
     if (D.owner) {
       const o = makeNPC(D.owner); o.scale.setScalar(0.78); town.add(o);
-      dg.owner = { g: o, x: D.route[0][0], z: D.route[0][1], ry: 0, wi: 1 };
+      dg.owner = { g: o, x: P.route[0][0], z: P.route[0][1], ry: 0, wi: 1 };
       dg.x = dg.owner.x - 1.2; dg.z = dg.owner.z;
       dg.leash = new THREE.Mesh(G.cyl(0.025, 0.025, 1, 5), leashMat3); town.add(dg.leash);
-    } else { dg.x = D.home[0]; dg.z = D.home[1]; dg.tx = dg.x; dg.tz = dg.z; }
+    } else { dg.x = P.home[0]; dg.z = P.home[1]; dg.tx = dg.x; dg.tz = dg.z; }
     townDogs.push(dg);
   }
 }
 const inPark3 = (x, z) => x > DOGPARK.x0 + 0.6 && x < DOGPARK.x1 - 0.6 && z > DOGPARK.z0 + 0.6 && z < DOGPARK.z1 - 0.6;
 function pickDogTarget3(dg) {
-  const D = dg.def;
+  const P = dg.P;
   for (let i = 0; i < 20; i++) {
-    const a = Math.random() * Math.PI * 2, rr = Math.random() * D.r, x = D.home[0] + Math.cos(a) * rr, z = D.home[1] + Math.sin(a) * rr;
-    if (blocked(x, z, 0.4) || (D.park && !inPark3(x, z))) continue;
+    const a = Math.random() * Math.PI * 2, rr = Math.random() * P.r, x = P.home[0] + Math.cos(a) * rr, z = P.home[1] + Math.sin(a) * rr;
+    if (blocked(x, z, 0.4) || (dg.def.park && !inPark3(x, z))) continue;
     dg.tx = x; dg.tz = z; return;
   }
-  dg.tx = D.home[0]; dg.tz = D.home[1];
+  dg.tx = P.home[0]; dg.tz = P.home[1];
 }
 const _dw = new THREE.Vector3(), _dh = new THREE.Vector3(), _dq = new THREE.Quaternion(), _dy = new THREE.Vector3(0, 1, 0);
 let kidStillT = 0, dogMsgT = 0;
 function updateTownDogs3(dt, p, t) {
-  if (!townDogs.length) buildTownDogs3();
+  buildTownDogs3();
   const kidMoving = kidS.px !== undefined && Math.hypot(kidS.x - kidS.px, kidS.z - kidS.pz) > 0.001;
   kidS.px = kidS.x; kidS.pz = kidS.z;
   kidStillT = kidMoving ? 0 : kidStillT + dt;
@@ -2263,9 +2200,9 @@ function updateTownDogs3(dt, p, t) {
     let gx = null, gz = null, spd = 1.4 + D.size * 1.2;
     dg.growlT -= dt; dg.happyT -= dt; dg.fleeT -= dt;
     if (dg.owner) {   // el dueño camina su ruta; se detiene si el avatar está cerca
-      const o = dg.owner, [wx, wz] = D.route[o.wi], dx = wx - o.x, dz = wz - o.z, dd = Math.hypot(dx, dz);
+      const o = dg.owner, [wx, wz] = dg.P.route[o.wi], dx = wx - o.x, dz = wz - o.z, dd = Math.hypot(dx, dz);
       const stop = Math.hypot(kidS.x - o.x, kidS.z - o.z) < 2.2 || dg.happyT > 0;
-      if (dd < 0.2) o.wi = (o.wi + 1) % D.route.length;
+      if (dd < 0.2) o.wi = (o.wi + 1) % dg.P.route.length;
       else if (!stop) { const s = Math.min(dd, 1.5 * dt); o.x += dx / dd * s; o.z += dz / dd * s; o.ry = Math.atan2(dx, dz); }
       else o.ry = Math.atan2(kidS.x - o.x, kidS.z - o.z);
       o.g.position.set(o.x, Math.abs(Math.sin(t * 6)) * (stop ? 0 : 0.04), o.z); o.g.rotation.y = o.ry;
@@ -2282,31 +2219,30 @@ function updateTownDogs3(dt, p, t) {
       else { gx = dg.tx; gz = dg.tz; }
       if (dg.fleeT > 0) spd *= 2;
     }
+    dg.sp = 0;
     if (gx !== null) {
       const dx = gx - dg.x, dz = gz - dg.z, dd = Math.hypot(dx, dz);
       if (dd > 0.15) {
         const s = Math.min(dd, spd * dt), nx = dg.x + dx / dd * s, nz = dg.z + dz / dd * s;
-        if (dg.owner || !blocked(nx, nz, 0.3)) { dg.x = nx; dg.z = nz; dg.sp = s / dt; dg.ry += (Math.atan2(Math.sin(Math.atan2(dx, dz) - dg.ry), Math.cos(Math.atan2(dx, dz) - dg.ry))) * (1 - Math.exp(-10 * dt)); }
+        if (dg.owner || !blocked(nx, nz, 0.3)) { dg.x = nx; dg.z = nz; dg.sp = s / dt; const a = Math.atan2(dx, dz); dg.ry += Math.atan2(Math.sin(a - dg.ry), Math.cos(a - dg.ry)) * (1 - Math.exp(-10 * dt)); }
         else { pickDogTarget3(dg); dg.wait = 0.5; }
-      } else { dg.sp = 0; if (!dg.owner) { pickDogTarget3(dg); dg.wait = 1 + Math.random() * 3; } }
-      if (dd <= 0.15) dg.sp = 0;
-    } else dg.sp = 0;
+      } else if (!dg.owner) { pickDogTarget3(dg); dg.wait = 1 + Math.random() * 3; }
+    }
     // perro enojón: si el avatar o Luna entran en su círculo, gruñe (sin morder: es un aviso)
     if (D.mood === 'grumpy') {
       const dk = Math.hypot(kidS.x - dg.x, kidS.z - dg.z), dl = lunaOut ? Math.hypot(luna.x - dg.x, luna.z - dg.z) : 99;
       if (Math.min(dk, dl) < 2.9 && dg.growlT <= 0) {
-        dg.growlT = 4; dg.mode = 'growl'; dogSound('bark', 4, 0.7);
+        dg.growlT = 4; dogSound('bark', 4, 0.7);
         burst(town, '💢', new THREE.Vector3(dg.x, 1.6 * D.size + 0.4, dg.z), 2, 0.5);
         if (lunaOut && !p.asleep) { luna.mode = 'sit'; luna.modeT = 1.2; }
-        const e = today(p); e.growls = (e.growls || 0) + 1;
-        if (e.growls <= 4) applyFx(p, { felicidad: -3 });
-        if (dogMsgT <= 0) { dogMsgT = 12; speak(D.owner ? `¡Cuidado! ${D.name} se pone nervioso. Su dueño lo tiene con correa: mejor saluda de lejos.` : `¡Cuidado! ${D.name} está enojado. Aléjate despacio, sin correr ni gritar, y no lo mires fijo.`); pop('⚠️', D.name); }
+        const say = dogGrowl(p, D, dogMsgT <= 0);
+        if (say) { dogMsgT = 12; speak(say); pop('⚠️', D.name); }
         refreshHUD();
       }
       dg.ring.position.set(dg.x, 0.05, dg.z);
       dg.ring.material.opacity = dg.growlT > 2.5 ? 0.95 : 0.55 + Math.sin(t * 4) * 0.15;
     }
-    const mode = dg.happyT > 0 ? 'happy' : dg.growlT > 2.8 ? 'idle' : dg.sp > 0.2 ? 'walk' : (D.mood === 'shy' && !dg.owner ? 'sit' : 'idle');
+    const mode = dg.happyT > 0 ? 'happy' : dg.sp > 0.2 ? 'walk' : (D.mood === 'shy' && !dg.owner ? 'sit' : 'idle');
     animateDog(dg.d, dt, { mode, speed: dg.sp, sad: D.mood === 'grumpy' && dg.growlT > 2.8, mood: D.mood === 'friendly' ? 'feliz' : 'normal' });
     dg.d.root.position.set(dg.x, 0, dg.z); dg.d.root.rotation.y = dg.ry;
     dg.ind.position.set(dg.x, 1.85 * D.size + 0.55 + Math.sin(t * 3 + D.size * 5) * 0.08, dg.z);
@@ -2321,9 +2257,8 @@ function updateTownDogs3(dt, p, t) {
       dg.leash.scale.set(1, len, 1);
       animateNPC(dg.owner.g, dt * (Math.hypot(kidS.x - dg.owner.x, kidS.z - dg.owner.z) < 2.2 ? 1 : 0.3));
     }
-    // al acercarse por primera vez: nombre y carácter
-    const close = Math.hypot(kidS.x - dg.x, kidS.z - dg.z) < 3.2;
-    if (close && !dg.near) toast(`${DOG_MOOD[D.mood].icon} ${D.name} · ${D.owner ? 'con su dueño' : D.park ? 'en el parque' : 'suelto'} · ${DOG_MOOD[D.mood].word}`);
+    const close = Math.hypot(kidS.x - dg.x, kidS.z - dg.z) < 3.2;   // al acercarse: nombre y carácter
+    if (close && !dg.near) toast(dogLabel(D));
     dg.near = close;
   }
 }
@@ -2332,76 +2267,40 @@ function nearestDog3(maxD, filter) {
   for (const dg of townDogs) { if (filter && !filter(dg)) continue; const d = Math.hypot(kidS.x - dg.x, kidS.z - dg.z); if (d < bd) { bd = d; best = dg; } }
   return best;
 }
+// Resultado de una misión (avance o cumplida): voz, globo y tarjeta
+function showQuest3(r) {
+  if (!r) return;
+  if (r.done) {
+    kid.mode = 'cheer'; kid.modeT = 1.6; luna.mode = 'happy'; luna.modeT = 1.6; sfx('coin');
+    speak(r.done.say); card3(questDoneHTML(r.done));
+    spawnValley3(current.pet);
+  } else { pop(r.def.icon, `${r.n}/${r.need}`); speak(`¡Bien! Llevas ${r.n} de ${r.need}.`); }
+  refreshHUD();
+}
 function greetDog3(dg) {
-  const p = current.pet, e = today(p), D = dg.def;
-  e.dogs = e.dogs || {};
-  const ownerAsk = () => { if (!e.dogs['ask-' + D.id]) { e.dogs['ask-' + D.id] = 1; p.bones++; pop('🙋', '🦴 +1'); refreshHUD(); } };
-  if (D.mood === 'grumpy') {
-    if (D.owner) { ownerAsk(); speak(`¡Muy bien por preguntar! Su dueño dice: mejor no, ${D.name} se pone nervioso con otros perros.`); }
-    else { speak(`No toques a ${D.name}: está enojado. Aléjate despacio con Luna. Si un perro está suelto y gruñe, avisa a un adulto.`); pop('⚠️'); }
-    return;
+  const p = current.pet, D = dg.def, lunaThere = dog.root.parent === town && !p.asleep;
+  const r = greetDog(p, D, { asked: dg.asked, kidStill: kidStillT, lunaThere });
+  dg.asked = r.asked;
+  if (D.owner && r.icon === '🙋') dg.owner.g.userData.wave = 2;
+  if (r.happy) {
+    dg.happyT = 2.5; dg.wait = 2.5; dg.ry = Math.atan2(kidS.x - dg.x, kidS.z - dg.z);
+    burst(town, '💖', new THREE.Vector3(dg.x, 1.4 * D.size + 0.4, dg.z), 4, 0.5);
+    dogSound('happy', D.size > 1 ? 4 : D.size > 0.7 ? 3 : 1, 0.7);
+    if (lunaThere) { luna.mode = 'happy'; luna.modeT = 2; burst(town, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 2, 0.5); }
   }
-  if (D.owner && !dg.asked) {   // primero se pide permiso al dueño
-    dg.asked = true; ownerAsk();
-    dg.owner.g.userData.wave = 2;
-    speak(D.mood === 'shy' ? `¿Puedo saludar a tu perrito? ¡Sí, pero despacito, ${D.name} es tímido! Quédate quieto y toca A otra vez.` : `¿Puedo saludar a tu perrito? ¡Claro que sí, ${D.name} es muy bueno! Toca A otra vez.`);
-    return;
-  }
-  if (D.mood === 'shy' && kidStillT < 1) {   // al tímido se le saluda quieto y con calma
-    speak(`${D.name} se asustó un poquito. Quédate quieto un momento y vuelve a tocar A.`); pop('💛', '🤫');
-    return;
-  }
-  const lunaThere = dog.root.parent === town && !p.asleep;
-  dg.happyT = 2.5; dg.wait = 2.5; dg.ry = Math.atan2(kidS.x - dg.x, kidS.z - dg.z);
-  burst(town, '💖', new THREE.Vector3(dg.x, 1.4 * D.size + 0.4, dg.z), 4, 0.5);
-  dogSound('happy', D.size > 1 ? 4 : D.size > 0.7 ? 3 : 1, 0.7);
-  if (lunaThere) { luna.mode = 'happy'; luna.modeT = 2; burst(town, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 2, 0.5); }
-  const first = !e.dogs[D.id];
-  e.dogs[D.id] = 1;
-  if (first) {
-    applyFx(p, { felicidad: lunaThere ? 8 : 3, energia: -1 }); p.bones++;
-    addEvent(p, '🐕', `${lunaThere ? 'Luna jugó' : 'Saludaste'} con ${D.name}.`);
-    addMilestone(p, 'dogfriend', '🐕', '¡Luna hizo su primer amigo perruno!');
-    const friends = Object.keys(e.dogs).filter(k => !k.startsWith('ask-')).length;
-    if (friends >= 3) addMilestone(p, 'dogs3', '🐾', 'Luna jugó con tres perritos en un día.');
-    questEvent3('dog');
-    pop('🐕', '🦴 +1');
-  } else pop('💚');
-  speak(D.mood === 'shy' ? `¡Bien hecho! Con calma, ${D.name} se dejó acariciar.` : `¡${D.name} está feliz de jugar con ${lunaThere ? 'Luna' : 'ustedes'}!`);
+  pop(r.icon, r.sub); speak(r.say);
   saveRoot(); refreshHUD();
+  if (r.quest) setTimeout(() => showQuest3(r.quest), 1200);
 }
 
-// ====================== Establecimientos al aire libre (panel de acciones) ======================
+// ====================== Lugares nuevos (panel de acciones al aire libre) ======================
 let spotId = null;
-const DOG_FACTS3 = [
-  ['🍫', 'El chocolate es malo para los perros. ¡Nunca les des chocolate!'],
-  ['💧', 'Los perros necesitan agua fresca todo el día, sobre todo cuando hace calor.'],
-  ['👃', 'La nariz de un perro huele muchísimo mejor que la nuestra.'],
-  ['😴', 'Los cachorros duermen muchas horas para crecer sanos y fuertes.'],
-  ['🦮', 'Antes de acariciar a un perro que no conoces, pregunta siempre a su dueño.'],
-  ['🐾', 'Cuando un perro mueve la cola suelta y relajada, suele estar contento.'],
-  ['⚠️', 'Si un perro gruñe o enseña los dientes, aléjate despacio y sin correr.'],
-  ['💉', 'Las vacunas protegen a los cachorros de enfermedades.'],
-  ['🦷', 'Morder juguetes ayuda a los cachorros cuando les salen los dientes.'],
-  ['🛁', 'A los perros no hay que bañarlos todos los días: con cepillarlos basta.'],
-  ['🍇', 'Las uvas también son malas para los perros.'],
-  ['🎾', 'Jugar y pasear todos los días mantiene a los perros felices.'],
-];
-const QUIZ3 = [
-  { q: '¿Qué comida es mala para los perros?', a: [['🍫', true], ['🥕', false]] },
-  { q: 'Un perro que no conoces: ¿qué haces primero?', a: [['🙋 Preguntar al dueño', true], ['🏃 Correr a abrazarlo', false]] },
-  { q: 'Un perro gruñe y enseña los dientes. ¿Qué haces?', a: [['🚶 Me alejo despacio', true], ['👋 Lo toco', false]] },
-  { q: '¿Qué necesita Luna todo el día?', a: [['💧 Agua fresca', true], ['🥤 Refresco', false]] },
-  { q: '¿Qué la protege de enfermedades?', a: [['💉 Las vacunas', true], ['🍬 Los dulces', false]] },
-  { q: '¿Qué fruta es mala para los perros?', a: [['🍇 Uvas', true], ['🍎 Manzana sin semillas', false]] },
-];
-const needLuna3 = p => p.asleep ? '💤' : !lunaWithKid() ? '🐶' : '';
-const gameN3 = (p, id) => ((today(p).games || {})[id] || 0);
-function spotDone3(fx, kind, icon, msg, word, extra) {
+const needLuna3 = () => lunaWithKid();
+function spotFinish3(r) {
   const p = current.pet;
-  applyFx(p, fx); if (kind) counted(kind); addEvent(p, icon, msg);
-  const gains = Object.entries(fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
-  pop(icon, (gains ? '+' + gains : '') + (extra ? ' ' + extra : '')); speak(word); dogSound('happy', dogSize(), 0.7);
+  applyFx(p, r.fx); if (r.kind) counted(r.kind); addEvent(p, r.icon, r.msg);
+  const gains = Object.entries(r.fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
+  pop(r.icon, (gains ? '+' + gains : '') + (r.extra ? ' ' + r.extra : '')); speak(r.word); dogSound('happy', dogSize(), 0.7);
   luna.mode = 'happy'; luna.modeT = 1.2; busy = false; saveRoot(); refreshHUD(); spotActions3();
 }
 // Luna camina hasta el lugar, hace una animación y luego se aplica el efecto
@@ -2414,129 +2313,9 @@ function spotRun3(spot, secs, emoji, then) {
     setTimeout(then, secs * 1000);
   });
 }
-const SPOTS3 = {
-  peluqueria: {
-    help: 'Esta es la peluquería canina. Aquí bañan a Luna, la peinan y le cortan las uñas.',
-    actions: p => [
-      ['sp:groom', '🛁', 'Baño y peinado', needLuna3(p) || (gameN3(p, 'groom') ? '⏳' : p.bones < 4 ? '🦴' : ''), '🦴4'],
-      ['sp:nails', '💅', 'Uñas', needLuna3(p) || (p.day - (p.lastDone.unas || 0) < 7 ? '✔' : p.bones < 1 ? '🦴' : ''), '🦴1'],
-    ],
-    act: (a, p, pl) => {
-      if (a === 'groom') { p.bones -= 4; markGame3(p, 'groom'); speak('¡A ponerse guapa!'); return spotRun3([pl.x + 1, pl.z + 3.6, Math.PI], 2.4, '🫧', () => { p.lastDone.unas = p.day; addMilestone(p, 'groom', '✂️', 'Luna fue a la peluquería canina.'); spotDone3({ higiene: 70, felicidad: 10 }, 'care', '✂️', 'Baño y peinado en la peluquería canina.', '¡Quedó preciosa!'); }); }
-      if (a === 'nails') { p.bones -= 1; return spotRun3([pl.x + 1, pl.z + 3.6, Math.PI], 1.4, '✨', () => { p.lastDone.unas = p.day; spotDone3({ felicidad: 2 }, 'care', '💅', 'Le cortaron las uñas a Luna.', '¡Uñas listas!'); }); }
-    },
-  },
-  heladeria: {
-    help: 'Esta es la heladería. Tiene helado especial para perros: sin azúcar y sin chocolate, porque el chocolate les hace daño.',
-    actions: p => [
-      ['sp:icecream', '🍦', 'Helado de perro', needLuna3(p) || (gameN3(p, 'icecream') ? '⏳' : p.bones < 2 ? '🦴' : ''), '🦴2'],
-      p.day >= 4 ? ['sp:drink', '🚰', 'Agua', needLuna3(p) || (p.stats.hidratacion >= 92 ? '💧' : ''), '💧'] : null,
-    ],
-    act: (a, p, pl) => {
-      if (a === 'icecream') { p.bones -= 2; markGame3(p, 'icecream'); speak('Un helado especial para perros. ¡Sin chocolate!'); return spotRun3([pl.x, pl.z + 3.4, Math.PI], 2, '🍦', () => { addMilestone(p, 'icecream', '🍦', 'Luna probó su primer helado para perros.'); spotDone3({ felicidad: 15, hidratacion: 12 }, 'play', '🍦', 'Luna tomó un helado para perros.', '¡Qué rico y fresquito!'); }); }
-      if (a === 'drink') return spotRun3([pl.x, pl.z + 3.4, Math.PI], 1.4, '💧', () => spotDone3({ hidratacion: 30 }, 'water', '🚰', 'Bebió agua en la heladería.', '¡Glu glu!'));
-    },
-  },
-  panaderia: {
-    help: 'Esta es la pastelería para perros. Las galletas son premios para darle a Luna en casa o a los perritos del refugio.',
-    actions: p => [
-      ['sp:cookies', '🍪', 'Galletas', p.bones < 3 ? '🦴' : '', '🦴3'],
-      ['sp:cake', '🎂', 'Pastelito', needLuna3(p) || (gameN3(p, 'cake') ? '⏳' : p.bones < 5 ? '🦴' : ''), '🦴5'],
-      ['sp:smell', '👃', 'Oler', needLuna3(p) || (gameN3(p, 'smell') ? '⏳' : ''), '💖'],
-    ],
-    act: (a, p, pl) => {
-      if (a === 'cookies') { p.bones -= 3; p.items.premio += 2; addEvent(p, '🍪', 'Compraste galletas para perros.'); pop('🍪', '+2'); speak('¡Dos galletas! Dáselas a Luna en casa o llévalas al refugio.'); sfx('coin'); saveRoot(); refreshHUD(); spotActions3(); return; }
-      if (a === 'cake') { p.bones -= 5; markGame3(p, 'cake'); speak('¡Un pastelito para Luna!'); return spotRun3([pl.x, pl.z + 3.6, Math.PI], 2, '🎂', () => { today(p).treats = (today(p).treats || 0) + 1; spotDone3({ felicidad: 20, saciedad: 10 }, 'play', '🎂', 'Luna comió un pastelito para perros.', '¡Ñam ñam!'); }); }
-      if (a === 'smell') { markGame3(p, 'smell'); return spotRun3([pl.x - 1, pl.z + 3.4, Math.PI], 1.6, '👃', () => spotDone3({ felicidad: 5 }, null, '👃', 'Olieron el pan recién hecho.', '¡Mmm, qué rico huele!')); }
-    },
-  },
-  biblioteca: {
-    help: 'Esta es la biblioteca. Escucha un cuento con datos sobre perros o juega a las preguntas.',
-    actions: p => [
-      ['sp:story', '📖', 'Cuento', ''],
-      ['sp:quiz', '❓', 'Preguntas', (today(p).quiz || 0) >= 3 ? '⏳' : ''],
-    ],
-    act: (a, p) => {
-      if (a === 'story') {
-        const n = gameN3(p, 'story'), f = DOG_FACTS3[(p.day * 3 + n) % DOG_FACTS3.length];
-        markGame3(p, 'story');
-        if (n === 0) { p.bones++; applyFx(p, { felicidad: 6 }); addEvent(p, '📖', 'Escucharon un cuento en la biblioteca.'); }
-        speak('Dato perruno: ' + f[1]);
-        card3(`<div class="result"><h2>📖</h2><div class="howto"><div><span>${f[0]}</span></div></div><p class="fact">${esc3(f[1])}</p>${n === 0 ? '<div class="gains"><span>🦴 +1</span></div>' : ''}</div>`);
-        saveRoot(); refreshHUD(); return;
-      }
-      if (a === 'quiz') return openQuiz3();
-    },
-  },
-  refugio: {
-    help: 'Este es el refugio. Aquí viven perritos que buscan familia. Dales mimos o llévales una galleta.',
-    actions: p => [
-      ['sp:visit', '🤗', 'Mimos', gameN3(p, 'shelter') ? '⏳' : '', '💖🦴'],
-      ['sp:treat', '🍪', 'Dar galleta', p.items.premio > 0 ? '' : '🛒', `🍪${p.items.premio}`],
-    ],
-    act: (a, p) => {
-      if (a === 'visit') {
-        markGame3(p, 'shelter'); p.bones += 2; busy = true;
-        walkTo([shelterPen.x, shelterPen.z - 3.2, 0], () => {
-          shelterDogs.forEach(s => { s.happyT = 2.5; });
-          burst(town, '💖', new THREE.Vector3(shelterPen.x, 1.2, shelterPen.z), 6, 0.6);
-          setTimeout(() => { addMilestone(p, 'shelter', '🏡', 'Visitaron a los perritos del refugio.'); spotDone3({ felicidad: 12 }, 'play', '🤗', 'Dieron mimos a los perritos del refugio.', '¡Los perritos están felices!', '🦴 +2'); }, 1500);
-        });
-        return;
-      }
-      if (a === 'treat') {
-        p.items.premio--; p.bones += 2; shelterDogs.forEach(s => { s.happyT = 2.5; });
-        burst(town, '🍪', new THREE.Vector3(shelterPen.x, 1.2, shelterPen.z), 4, 0.5);
-        p.rpg = rpg3(p); p.rpg.treat = p.day; questEvent3('flag', 'shelterTreat');
-        addEvent(p, '🍪', 'Llevaron una galleta a los perritos del refugio.');
-        pop('🍪', '🦴 +2'); speak('¡Gracias! Los perritos del refugio te lo agradecen.'); sfx('coin'); saveRoot(); refreshHUD(); spotActions3();
-      }
-    },
-  },
-  perros: {
-    help: 'Este es el parque para perros. Luna puede jugar con otros perritos, correr tras el disco y beber agua.',
-    actions: p => [
-      ['sp:friends', '🐕', 'Jugar con amigos', needLuna3(p) || playBlock(p), '💖'],
-      ['sp:frisbee', '🥏', 'Disco', needLuna3(p) || playBlock(p), '💖🦴'],
-      p.day >= 4 ? ['sp:drink', '🚰', 'Agua', needLuna3(p) || (p.stats.hidratacion >= 92 ? '💧' : ''), '💧'] : null,
-    ],
-    act: (a, p) => {
-      if (a === 'friends') {
-        const pals = townDogs.filter(d => d.def.park);
-        const pal = pals[Math.floor(Math.random() * pals.length)];
-        busy = true;
-        walkTo([pal.x - 1, pal.z, Math.PI / 2], () => {
-          pal.happyT = 3; pal.wait = 3; luna.mode = 'spin'; luna.modeT = 1.5; dogSound('bark', dogSize());
-          burst(town, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 4);
-          setTimeout(() => { markGame3(p, 'dogpark'); addMilestone(p, 'dogpark', '🐕', 'Luna jugó en el parque para perros.'); outdoorRisk(p); spotDone3({ felicidad: 18, energia: -10, hidratacion: -6 }, 'play', '🐕', `Luna jugó con ${pal.def.name} en el parque para perros.`, `¡Luna y ${pal.def.name} son amigas!`); }, 1800);
-        });
-        return;
-      }
-      if (a === 'frisbee') return throwDisc3(p, 0);
-      if (a === 'drink') { const w = dogparkStuff.water; return spotRun3(w, 1.4, '💧', () => spotDone3({ hidratacion: 30 }, 'water', '🚰', 'Bebió agua en el parque para perros.', '¡Glu glu!')); }
-    },
-  },
-  aventura: {
-    help: 'Este es el Valle Aventura. El guardabosques te da misiones: busca setas, plumas, cristales y tesoros. Cruza el puente para llegar a las ruinas y a la cueva.',
-    actions: p => {
-      const R = rpg3(p);
-      return [
-        ['sp:quest', '📜', R.met ? 'Misión' : 'Hablar', ''],
-        ['sp:bag', '🎒', 'Mochila', R.met ? '' : '🔒'],
-        ['sp:rest', '🔥', 'Fogata', p.stats.energia >= 95 ? '⚡' : '', '⚡'],
-      ];
-    },
-    act: (a, p) => {
-      if (a === 'quest') return talkRanger3(p);
-      if (a === 'bag') return bagCard3(p);
-      if (a === 'rest') { busy = true; walkTo([45.5, 23.4, 0], () => { luna.mode = 'lie'; luna.modeT = 2; setTimeout(() => spotDone3({ energia: 12, felicidad: 3 }, null, '🔥', 'Descansaron junto a la fogata.', 'Qué calentito'), 2000); }); }
-    },
-  },
-};
 function openSpot3(id) {
   where = 'spot'; spotId = id;
-  const pl = PL.find(x => x.id === id);
-  speak(pl.name); dogSound('bark', dogSize(), 0.6);
+  speak(SPOT_UI[id].name); dogSound('bark', dogSize(), 0.6);
   if (id === 'aventura' && ranger) ranger.userData.wave = 2;
   spotActions3(); $('#actions').hidden = false; $('#prompt').hidden = true;
   guideEvent3('open:' + id);
@@ -2545,20 +2324,54 @@ function closeSpot3() { where = 'town'; spotId = null; busy = false; $('#actions
 function spotActions3() {
   if (where !== 'spot' || !spotId) return;   // una acción que termina tarde no debe pintar botones en otro lugar
   const p = current.pet;
-  renderActions(SPOTS3[spotId].actions(p).concat([['closespot', '🚪', 'Salir', '']]));
-  if (['panaderia', 'heladeria', 'peluqueria'].includes(spotId)) setInfo(`<div class="wallet">🦴 ${p.bones}${spotId === 'panaderia' ? ` · 🍪 ${p.items.premio}` : ''}</div>`);
-  else if (spotId === 'aventura') { const R = rpg3(p), q = questNow3(p); setInfo(`<div class="wallet">${RANKS3[rankOf3(R.xp)]} · ⭐ ${R.xp}${q ? ` · ${q.def.icon} ${Math.min(q.n, q.def.n || 1)}/${q.def.n || 1}` : ''}</div>`); }
-  else setInfo('');
+  renderActions(spotActions(spotId, p, lunaWithKid() && !p.asleep).concat([['closespot', '🚪', 'Salir', '']]));
+  const info = spotInfo(spotId, p);
+  setInfo(info ? `<div class="wallet">${info}</div>` : '');
 }
 function spotAct3(a) {
   if (a === 'closespot') return closeSpot3();
   if (busy || !spotId) return;
-  const p = current.pet, pl = PL.find(x => x.id === spotId);
+  const p = current.pet, pl = PL.find(x => x.id === spotId), act = a.slice(3);
   setTimeout(() => guideEvent3('do:' + a), 0);
-  SPOTS3[spotId].act(a.slice(3), p, pl);
+  const r = spotDo(spotId, act, p);
+  if (!r) return;
+  saveRoot(); refreshHUD();
+  if (r.special === 'story') { speak('Dato perruno: ' + r.text); card3(`<div class="result"><h2>📖</h2><div class="howto"><div><span>${r.icon}</span></div></div><p class="fact">${esc3(r.text)}</p>${r.bone ? '<div class="gains"><span>🦴 +1</span></div>' : ''}</div>`); return; }
+  if (r.special === 'quiz') return openQuiz3(r.q);
+  if (r.special === 'talk' || r.special === 'bag') { if (ranger) ranger.userData.wave = 2; speak(r.say); card3(r.html); spawnValley3(p); spotActions3(); return; }
+  if (r.special === 'cookies') { pop(r.icon, r.sub); speak(r.say); sfx('coin'); spotActions3(); return; }
+  if (r.special === 'treatShelter') {
+    shelterDogs.forEach(s => { s.happyT = 2.5; });
+    burst(town, '🍪', new THREE.Vector3(shelterPen.x, 1.2, shelterPen.z), 4, 0.5);
+    pop(r.icon, r.sub); speak(r.say); sfx('coin'); spotActions3();
+    if (r.quest) setTimeout(() => showQuest3(r.quest), 1200);
+    return;
+  }
+  if (r.start) speak(r.start);
+  if (spotId === 'refugio') {   // mimos a los perritos del corral
+    busy = true;
+    return walkTo([shelterPen.x, shelterPen.z - 3.2, 0], () => {
+      shelterDogs.forEach(s => { s.happyT = 2.5; });
+      burst(town, '💖', new THREE.Vector3(shelterPen.x, 1.2, shelterPen.z), 6, 0.6);
+      setTimeout(() => spotFinish3(r), 1500);
+    });
+  }
+  if (r.special2 === 'friends') {
+    const pals = townDogs.filter(d => d.def.park), pal = pals[Math.floor(Math.random() * pals.length)];
+    busy = true;
+    return walkTo([pal.x - 1, pal.z, Math.PI / 2], () => {
+      pal.happyT = 3; pal.wait = 3; luna.mode = 'spin'; luna.modeT = 1.5; dogSound('bark', dogSize());
+      burst(town, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 4);
+      setTimeout(() => spotFinish3({ ...r, msg: `Luna jugó con ${pal.def.name} en el parque para perros.`, word: `¡Luna y ${pal.def.name} son amigas!` }), 1800);
+    });
+  }
+  if (r.special2 === 'frisbee') return throwDisc3(0, () => spotFinish3(r));
+  if (spotId === 'aventura') { busy = true; return walkTo([45.5, 23.4, 0], () => { luna.mode = 'lie'; luna.modeT = 2; setTimeout(() => spotFinish3(r), 2000); }); }
+  const spot = spotId === 'perros' ? dogparkStuff.water : [pl.x + (act === 'smell' ? -1 : 0.6), pl.z + (pl.d || 0) / 2 + 1.2, Math.PI];
+  spotRun3(spot, act === 'groom' ? 2.4 : 1.6, r.anim || '✨', () => spotFinish3(r));
 }
 // Disco en el parque para perros: tres lanzamientos, Luna corre a buscarlo
-function throwDisc3(p, n) {
+function throwDisc3(n, done) {
   const disc = dogparkStuff.disc;
   busy = true;
   let x = 0, z = 0;
@@ -2575,35 +2388,22 @@ function throwDisc3(p, n) {
   walkTo([x, z - 0.6, 0], () => {
     disc.visible = false; luna.mode = 'happy'; luna.modeT = 0.8;
     burst(town, '⭐', new THREE.Vector3(x, 1.2, z), 2, 0.5);
-    walkTo([kidS.x + 0.8, kidS.z, -Math.PI / 2], () => {
-      if (n < 2) { busy = false; return throwDisc3(p, n + 1); }
-      const k = markGame3(p, 'frisbee'), bones = k <= 3 ? 1 : 0;
-      p.bones += bones; outdoorRisk(p);
-      spotDone3({ felicidad: 14, energia: -8, hidratacion: -5 }, 'play', '🥏', 'Jugaron al disco en el parque para perros.', '¡Qué buena atrapando!', bones ? '🦴 +1' : '');
-    });
+    walkTo([kidS.x + 0.8, kidS.z, -Math.PI / 2], () => { if (n < 2) throwDisc3(n + 1, done); else done(); });
   });
 }
 // Preguntas de la biblioteca (dos respuestas con dibujos)
 let quiz3 = null;
-function openQuiz3() {
-  const p = current.pet, e = today(p);
-  quiz3 = QUIZ3[(p.day + (e.quizN || 0)) % QUIZ3.length];
-  e.quizN = (e.quizN || 0) + 1;
-  const opts = shuffle3(quiz3.a);
-  speak(quiz3.q);
-  $('#card3-box').innerHTML = `<div class="result"><h2>❓</h2><p class="fact">${esc3(quiz3.q)}</p><div class="quiz">${opts.map(([t, ok]) => `<button class="go quiz-opt" data-quiz="${ok ? 1 : 0}">${esc3(t)}</button>`).join('')}</div></div>`;
+function openQuiz3(q) {
+  quiz3 = q;
+  speak(q.q);
+  $('#card3-box').innerHTML = `<div class="result"><h2>❓</h2><p class="fact">${esc3(q.q)}</p><div class="quiz">${shuffle3(q.a).map(([t, ok]) => `<button class="go quiz-opt" data-quiz="${ok ? 1 : 0}">${esc3(t)}</button>`).join('')}</div></div>`;
   $('#card3').hidden = false; cardCb = null;
 }
 function quizAnswer3(ok) {
-  const p = current.pet, e = today(p);
+  const p = current.pet;
   $('#card3').hidden = true;
-  if (ok) {
-    e.quiz = (e.quiz || 0) + 1;
-    const bones = e.quiz <= 3 ? 1 : 0; p.bones += bones;
-    applyFx(p, { felicidad: 4 }); sfx('coin'); pop('✅', bones ? '🦴 +1' : '');
-    speak('¡Correcto! Sabes mucho de perros.');
-    addMilestone(p, 'quiz', '🧠', 'Respondiste bien una pregunta perruna.');
-  } else { pop('❌'); speak('¡Uy! Esa no. ' + (quiz3 ? 'La respuesta era: ' + quiz3.a.find(x => x[1])[0] : '')); }
+  const r = answerQuiz(p, quiz3, ok);
+  pop(r.icon, r.sub); speak(r.say); if (ok) sfx('coin');
   saveRoot(); refreshHUD(); spotActions3();
 }
 // Corral del refugio con perritos que esperan familia
@@ -2611,128 +2411,28 @@ const shelterPen = { x: -15.5, z: 12 };
 keepClear.push([shelterPen.x, shelterPen.z, 4.2], [-22, 16, 2.5]);
 const shelterDogs = [];
 function buildShelterPen3() {
+  if (shelterDogs.length) return;
   const g = new THREE.Group(), x0 = shelterPen.x - 2.5, x1 = shelterPen.x + 2.5, z0 = shelterPen.z - 2, z1 = shelterPen.z + 2;
   fenceLine(g, x0, z0, x1, z0, '#c98c55'); fenceLine(g, x0, z1, x1, z1, '#c98c55'); fenceLine(g, x0, z0, x0, z1, '#c98c55'); fenceLine(g, x1, z0, x1, z1, '#c98c55');
   town.add(g);
-  const looks = [{ fur: '#b07848', dark: '#704020', light: '#e0b890' }, { fur: '#e8e0d0', dark: '#3c3434', light: '#ffffff', spots: true }, { fur: '#505050', dark: '#2a2a2a', light: '#9a9a9a' }];
-  looks.forEach((look, i) => {
+  SHELTER_LOOKS.forEach((look, i) => {
     const d = buildDog({ look, ears: i === 1 ? 'up' : null, day: 5, acc: { worn: null } }); d.root.scale.setScalar(0.5 + i * 0.12);
     town.add(d.root);
     shelterDogs.push({ d, x: x0 + 1 + i * 1.5, z: shelterPen.z, ph: i * 2, happyT: 0 });
   });
   const hs = sprite('🏡', 0.9, true); hs.position.set(shelterPen.x, 2.4, shelterPen.z); town.add(hs);
 }
-function updateShelter3(dt, t) {
-  if (!shelterDogs.length) buildShelterPen3();
+function updateShelter3(dt) {
   for (const s of shelterDogs) {
     s.ph += dt; s.happyT -= dt;
     s.x = shelterPen.x + Math.sin(s.ph * 0.4) * 1.8; s.z = shelterPen.z + Math.cos(s.ph * 0.55) * 1.2;
     s.d.root.position.set(s.x, 0, s.z); s.d.root.rotation.y = Math.atan2(Math.cos(s.ph * 0.4) * 0.72, -Math.sin(s.ph * 0.55) * 0.66);
     animateDog(s.d, dt, { mode: s.happyT > 0 ? 'happy' : 'walk', speed: 0.6, mood: 'feliz' });
   }
-  void t;
 }
 
-// ====================== Valle Aventura: misiones tipo RPG ======================
-const RANKS3 = ['🥾 Novato', '🧭 Explorador', '🏕️ Aventurero', '🗺️ Gran aventurero', '👑 Leyenda del valle'];
-const rankOf3 = xp => Math.min(RANKS3.length - 1, Math.floor(xp / 60));
-const QUESTS3 = [
-  { id: 'q-setas', icon: '🍄', type: 'collect', item: 'seta', n: 3, xp: 20, bones: 4, say: 'Busca 3 setas brillantes 🍄 en el valle. ¡Brillan entre los árboles!' },
-  { id: 'q-mirador', icon: '🗼', type: 'visit', poi: 'mirador', n: 1, xp: 20, bones: 3, say: 'Sube al mirador: es la torre del este, al final del sendero.' },
-  { id: 'q-perros', icon: '🐕', type: 'dog', n: 3, xp: 25, bones: 5, say: 'Haz 3 amigos perrunos en el pueblo. Busca a los perros con corazón verde 💚 y pregunta a su dueño antes de saludar.' },
-  { id: 'q-cristal', icon: '💎', type: 'collect', item: 'cristal', n: 1, xp: 30, bones: 6, say: 'Cruza el puente del río y encuentra el cristal azul 💎 en la cueva.' },
-  { id: 'q-cofre', icon: '🗝️', type: 'chest', n: 1, xp: 35, bones: 10, say: 'Hay una llave dorada 🗝️ escondida al otro lado del río. Encuéntrala y abre el cofre de las ruinas.' },
-  { id: 'q-refugio', icon: '🍪', type: 'flag', flag: 'shelterTreat', n: 1, xp: 25, bones: 5, say: 'Compra galletas en la pastelería 🥐 y lleva una a los perritos del refugio 🏡.' },
-  { id: 'q-plumas', icon: '🪶', type: 'collect', item: 'pluma', n: 3, xp: 25, bones: 5, say: 'Junta 3 plumas de colores 🪶 en el valle.' },
-];
-// Cuando terminan las misiones de la historia, cada día hay misiones nuevas (siempre hay algo que hacer)
-const DAILY3 = [
-  { id: 'd-setas', icon: '🍄', type: 'collect', item: 'seta', n: 4, xp: 15, bones: 3, say: 'Misión del día: junta 4 setas brillantes 🍄 en el valle.' },
-  { id: 'd-plumas', icon: '🪶', type: 'collect', item: 'pluma', n: 2, xp: 15, bones: 3, say: 'Misión del día: encuentra 2 plumas 🪶 en el valle.' },
-  { id: 'd-perros', icon: '🐕', type: 'dog', n: 2, xp: 15, bones: 3, say: 'Misión del día: saluda a 2 perros amistosos 💚 del pueblo.' },
-  { id: 'd-cofre', icon: '🗝️', type: 'chest', n: 1, xp: 20, bones: 5, say: 'Misión del día: hay otra llave 🗝️ al otro lado del río. ¡Abre el cofre de las ruinas!' },
-  { id: 'd-mirador', icon: '🗼', type: 'visit', poi: 'mirador', n: 1, xp: 10, bones: 2, say: 'Misión del día: sube al mirador a ver el pueblo.' },
-  { id: 'd-cristal', icon: '💎', type: 'collect', item: 'cristal', n: 1, xp: 15, bones: 3, say: 'Misión del día: trae el cristal 💎 de la cueva.' },
-];
-function rpg3(p) {
-  if (!p.rpg) p.rpg = { xp: 0, met: false, story: 0, q: null, bag: {}, day: 0, got: [], daily: 0, dailyDay: 0, key: false, chests: 0, quests: 0 };
-  return p.rpg;
-}
-function questDef3(id) { return QUESTS3.find(q => q.id === id) || DAILY3.find(q => q.id === id); }
-function questNow3(p) { const R = rpg3(p); if (!R.q) return null; const def = questDef3(R.q.id); return def ? { def, n: R.q.n } : null; }
-function assignQuest3(p) {
-  const R = rpg3(p);
-  if (R.story < QUESTS3.length) R.q = { id: QUESTS3[R.story].id, n: 0 };
-  else {
-    if (R.dailyDay !== p.day) { R.dailyDay = p.day; R.daily = 0; }
-    if (R.day !== p.day) { R.day = p.day; R.got = []; }
-    const greeted = Object.keys(today(p).dogs || {}).filter(k => !k.startsWith('ask-')).length;
-    const left = item => (item === 'seta' ? 7 : item === 'pluma' ? 4 : 1) - R.got.filter(id => id[0] === { seta: 's', pluma: 'f', cristal: 'c' }[item]).length;
-    const doable = d => d.type === 'collect' ? left(d.item) >= d.n : d.type === 'chest' ? R.chestDay !== p.day : d.type === 'dog' ? 9 - greeted >= d.n : true;
-    const start = p.day * 5 + R.daily + (p.bornAt % 7);
-    let def = DAILY3[start % DAILY3.length];
-    for (let i = 0; i < DAILY3.length; i++) { const d = DAILY3[(start + i) % DAILY3.length]; if (doable(d)) { def = d; break; } }
-    R.q = { id: def.id, n: 0 };
-  }
-  if (questDef3(R.q.id).type === 'chest') R.key = false;
-  spawnValley3(p);
-}
-function questEvent3(type, arg) {
-  if (!current) return;
-  const p = current.pet, R = rpg3(p), q = questNow3(p);
-  if (!q || q.def.type !== type) return;
-  if ((type === 'collect' && q.def.item !== arg) || (type === 'visit' && q.def.poi !== arg) || (type === 'flag' && q.def.flag !== arg)) return;
-  R.q.n++;
-  if (R.q.n >= (q.def.n || 1)) completeQuest3(p, q.def);
-  else { pop(q.def.icon, `${R.q.n}/${q.def.n}`); speak(`¡Bien! Llevas ${R.q.n} de ${q.def.n}.`); }
-  saveRoot();
-}
-function completeQuest3(p, def) {
-  const R = rpg3(p), before = rankOf3(R.xp);
-  const daily = !QUESTS3.includes(def);
-  if (daily) { if (R.dailyDay !== p.day) { R.dailyDay = p.day; R.daily = 0; } R.daily++; } else R.story++;
-  const bones = daily && R.daily > 3 ? 0 : def.bones;   // huesos: misiones de historia y las 3 primeras del día
-  R.xp += def.xp; R.quests++; p.bones += bones;
-  applyFx(p, { felicidad: 10 });
-  addEvent(p, '📜', `Misión cumplida en el Valle Aventura (${def.icon}).`);
-  addMilestone(p, 'quest1', '📜', '¡Primera misión de exploración cumplida!');
-  if (R.story >= QUESTS3.length && !daily) addMilestone(p, 'questall', '🏆', '¡Completaste todas las misiones del guardabosques!');
-  R.q = null;
-  assignQuest3(p);
-  const after = rankOf3(R.xp), next = questNow3(p);
-  kid.mode = 'cheer'; kid.modeT = 1.6; luna.mode = 'happy'; luna.modeT = 1.6; sfx('coin');
-  if (after > before) addMilestone(p, 'rank' + after, RANKS3[after].split(' ')[0], `Nuevo rango de explorador: ${RANKS3[after]}.`);
-  speak(`¡Misión cumplida! ${after > before ? '¡Subiste de rango! ' : ''}${next ? 'Nueva misión: ' + next.def.say : ''}`);
-  card3(`<div class="result"><h2>📜 ✔</h2><div class="stars">${def.icon}</div><div class="gains">${bones ? `<span>🦴 +${bones}</span>` : ''}<span>⭐ +${def.xp}</span>${after > before ? `<span>${RANKS3[after]}</span>` : ''}</div>${next ? `<p class="fact">${next.def.icon} ${esc3(next.def.say)}</p>` : ''}</div>`);
-  refreshHUD();
-}
-function talkRanger3(p) {
-  const R = rpg3(p);
-  if (ranger) ranger.userData.wave = 2;
-  if (!R.met) {
-    R.met = true; assignQuest3(p);
-    addMilestone(p, 'ranger', '🧭', 'Conociste al guardabosques del Valle Aventura.');
-    const q = questNow3(p);
-    speak(`¡Hola, exploradores! Soy el guardabosques. En este valle hay setas, plumas, cristales y tesoros. Primera misión: ${q.def.say}`);
-    card3(`<div class="result"><h2>🧭</h2><div class="howto"><div><span>🍄🪶💎🗝️</span></div></div><p class="fact">${q.def.icon} ${esc3(q.def.say)}</p></div>`);
-  } else {
-    if (!R.q) assignQuest3(p);
-    const q = questNow3(p);
-    speak(`Tu misión: ${q.def.say} Llevas ${Math.min(q.n, q.def.n || 1)} de ${q.def.n || 1}.`);
-    card3(`<div class="result"><h2>📜</h2><div class="stars">${q.def.icon}</div><p class="fact">${esc3(q.def.say)}</p><div class="gains"><span>${Math.min(q.n, q.def.n || 1)}/${q.def.n || 1}</span><span>🦴 ${q.def.bones}</span><span>⭐ ${q.def.xp}</span></div></div>`);
-  }
-  saveRoot(); spotActions3();
-}
-function bagCard3(p) {
-  const R = rpg3(p), b = R.bag, rk = rankOf3(R.xp), into = R.xp % 60;
-  speak(`Eres ${RANKS3[rk].slice(RANKS3[rk].indexOf(' ') + 1)}. Has cumplido ${R.quests} misiones.`);
-  card3(`<div class="result"><h2>🎒</h2><div class="weekbox"><span>${RANKS3[rk]}</span><span>📜 ${R.quests}</span></div>
-    <div class="xpbar"><b style="width:${rk === RANKS3.length - 1 ? 100 : Math.round(into / 60 * 100)}%"></b></div>
-    <div class="stickers"><span class="stk">🍄 ${b.seta || 0}</span><span class="stk">🪶 ${b.pluma || 0}</span><span class="stk">💎 ${b.cristal || 0}</span><span class="stk">🗝️ ${R.chests}</span></div></div>`);
-}
-// Objetos del valle: se renuevan cada día (setas, plumas, cristal y la llave si hay misión de cofre)
+// ====================== Valle Aventura (misiones en ../js/extras.js) ======================
 const valleyItems = [];
-const ITEM_ICON3 = { seta: '🍄', pluma: '🪶', cristal: '💎', llave: '🗝️' };
 function valleySpot3(r, south) {
   for (let i = 0; i < 200; i++) {
     const x = VALLEY.x0 + 2 + r() * (VALLEY.x1 - VALLEY.x0 - 4);
@@ -2741,20 +2441,17 @@ function valleySpot3(r, south) {
   }
   return [56, 26];
 }
+// Objetos del día: mismas ids que en el 2D (lo que se recoge en una versión no aparece en la otra)
 function spawnValley3(p) {
   valleyItems.forEach(v => town.remove(v.m)); valleyItems.length = 0;
-  const R = rpg3(p);
-  if (R.day !== p.day) { R.day = p.day; R.got = []; }
   const r = rng(p.bornAt % 100003 + p.day * 6151 + 11);
-  const list = [];
-  for (let i = 0; i < 7; i++) list.push(['s' + i, 'seta', valleySpot3(r, i >= 5)]);
-  for (let i = 0; i < 4; i++) list.push(['f' + i, 'pluma', valleySpot3(r, i >= 2)]);
-  list.push(['c0', 'cristal', [valleyPOI.cave[0], valleyPOI.cave[1] - 1.2]]);
-  const q = questNow3(p);
-  if (q && q.def.type === 'chest' && !R.key) list.push(['k' + R.quests, 'llave', valleySpot3(r, true)]);
-  for (const [id, item, [x, z]] of list) {
-    if (R.got.includes(id)) continue;
-    const m = sprite(ITEM_ICON3[item], item === 'llave' ? 1 : 0.85);
+  const spots = {};
+  for (let i = 0; i < 7; i++) spots['s' + i] = valleySpot3(r, i >= 5);
+  for (let i = 0; i < 4; i++) spots['f' + i] = valleySpot3(r, i >= 2);
+  const keySpot = valleySpot3(r, true);
+  for (const [id, item] of valleyItemList(p)) {
+    const [x, z] = item === 'cristal' ? [valleyPOI.cave[0], valleyPOI.cave[1] - 1.2] : item === 'llave' ? keySpot : spots[id];
+    const m = sprite(VALLEY_ITEMS[item].icon, item === 'llave' ? 1 : 0.85);
     m.position.set(x, 0.6, z); town.add(m);
     valleyItems.push({ id, item, m, x, z });
   }
@@ -2762,6 +2459,7 @@ function spawnValley3(p) {
 // Conejitos del valle (adorno: se acercan y saltan)
 const bunnies = [];
 function buildBunnies3() {
+  if (bunnies.length) return;
   for (let i = 0; i < 3; i++) {
     const g = new THREE.Group();
     const b = mesh(G.sph(0.25, 12, 10), '#f4f0ea'); b.scale.set(0.9, 0.85, 1.2); b.position.y = 0.25; g.add(b);
@@ -2774,39 +2472,34 @@ function buildBunnies3() {
   }
 }
 function updateValley3(dt, p, t) {
-  updateShelter3(dt, t);
+  updateShelter3(dt);
   if (dogparkStuff.flame) dogparkStuff.flame.scale.set(1 + Math.sin(t * 13) * 0.12, 1 + Math.sin(t * 9) * 0.2, 1 + Math.cos(t * 11) * 0.12);
   if (ranger) animateNPC(ranger, dt);
   if (!inValley(kidS.x, kidS.z) && Math.hypot(kidS.x - VALLEY.x0, kidS.z - VALLEY.gateZ) > 30) return;   // lejos del valle: nada que actualizar
-  if (!bunnies.length) buildBunnies3();
-  const R = rpg3(p), lunaOut = dog.root.parent === town && !hide3;
+  const R = rpgOf(p), lunaOut = dog.root.parent === town && !hide3;
   for (let i = valleyItems.length - 1; i >= 0; i--) {
     const v = valleyItems[i];
     v.m.position.y = 0.6 + Math.sin(t * 3 + i) * 0.12;
     if (Math.hypot(v.x - kidS.x, v.z - kidS.z) < 1.0 || (lunaOut && Math.hypot(v.x - luna.x, v.z - luna.z) < 0.9)) {
       town.remove(v.m); valleyItems.splice(i, 1);
-      R.got.push(v.id);
-      burst(town, ITEM_ICON3[v.item], v.m.position, 3, 0.5); sfx('coin');
-      if (v.item === 'llave') { R.key = true; pop('🗝️', '✔'); speak('¡La llave dorada! Ahora abre el cofre de las ruinas.'); }
-      else { R.bag[v.item] = (R.bag[v.item] || 0) + 1; applyFx(p, { felicidad: 2 }); if (v.item === 'cristal') addMilestone(p, 'crystal', '💎', 'Encontraron un cristal en la cueva del valle.'); questEvent3('collect', v.item); }
+      burst(town, VALLEY_ITEMS[v.item].icon, v.m.position, 3, 0.5); sfx('coin');
+      const r = pickValleyItem(p, v.id, v.item);
+      if (r.say) { pop(r.icon, r.sub); speak(r.say); }
       if (lunaOut) { luna.mode = 'happy'; luna.modeT = 0.8; }
       saveRoot(); refreshHUD();
+      showQuest3(r.quest);
     }
   }
-  // mirador
   if (Math.hypot(kidS.x - valleyPOI.mirador[0], kidS.z - valleyPOI.mirador[1]) < 2) {
-    const qm = questNow3(p), forQuest = qm && qm.def.type === 'visit' && qm.def.poi === 'mirador';
-    if (!gameN3(p, 'mirador') || forQuest) {
-      if (!gameN3(p, 'mirador')) { applyFx(p, { felicidad: 6 }); pop('🗼', '👀'); speak('¡Qué vista! Desde el mirador se ve todo el pueblo.'); }
-      markGame3(p, 'mirador');
+    const r = visitMirador(p);
+    if (r) {
       burst(town, '✨', new THREE.Vector3(65, 4.6, 20.8), 6, 0.6);
-      addMilestone(p, 'mirador', '🗼', 'Subieron al mirador del Valle Aventura.');
-      questEvent3('visit', 'mirador'); saveRoot(); refreshHUD();
+      if (r.first) { pop('🗼', '👀'); speak(r.say); }
+      saveRoot(); refreshHUD();
+      showQuest3(r.quest);
     }
   }
-  // cofre: tapa abierta si ya se abrió hoy
   if (chestMesh) chestMesh.userData.lid.rotation.x = lerp(chestMesh.userData.lid.rotation.x, R.chestDay === p.day ? -1.1 : 0, 1 - Math.exp(-6 * dt));
-  // conejitos
   for (const b of bunnies) {
     b.wait -= dt;
     const dk = Math.hypot(kidS.x - b.x, kidS.z - b.z);
@@ -2821,17 +2514,11 @@ function updateValley3(dt, p, t) {
   }
 }
 function openChest3() {
-  const p = current.pet, R = rpg3(p), q = questNow3(p);
-  if (R.chestDay === p.day) { speak('Este cofre ya está abierto. ¡Vuelve mañana!'); pop('📦'); return; }
-  if (!R.key || !q || q.def.type !== 'chest') { speak(q && q.def.type === 'chest' ? 'Está cerrado con llave. Busca la llave dorada al otro lado del río.' : 'Un cofre antiguo cerrado con llave. Pregunta al guardabosques: a veces pide abrirlo.'); pop('🔒'); return; }
-  R.key = false; R.chestDay = p.day; R.chests++;
-  const gems = 4 + Math.floor(Math.random() * 5);
-  p.bones += gems;
-  burst(town, '✨', new THREE.Vector3(valleyPOI.chest[0], 1.2, valleyPOI.chest[1] + 1.1), 8, 0.6);
-  addMilestone(p, 'chest', '🗝️', '¡Abrieron el cofre antiguo de las ruinas!');
-  pop('📦', `🦴 +${gems}`); speak('¡El cofre se abrió! Tenía huesos dorados.');
-  questEvent3('chest');
+  const p = current.pet, r = openChest(p);
+  if (r.opened) burst(town, '✨', new THREE.Vector3(valleyPOI.chest[0], 1.2, valleyPOI.chest[1] + 1.1), 8, 0.6);
+  pop(r.icon, r.sub); speak(r.say); if (r.opened) sfx('coin');
   saveRoot(); refreshHUD();
+  if (r.quest) setTimeout(() => showQuest3(r.quest), 1200);
 }
 
 // ====================== Minijuegos 3D ======================

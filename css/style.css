@@ -289,3 +289,14 @@ body.in-mg .guide { display: none; }
 .mcard.done { background: var(--mint); box-shadow: 0 5px 0 #4aa890; }
 @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0); } }
 @media (prefers-reduced-motion: reduce) { .mcard.up { animation: none; } }
+
+/* Ampliación: datos de la biblioteca, preguntas, barra de explorador y «Ahora no» de Pío */
+.result .fact { font-size: 19px; font-weight: 600; line-height: 1.3; margin: 10px auto; max-width: 34ch; }
+.quiz { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.quiz .quiz-opt { font-size: 22px; padding: 10px 16px; }
+.xpbar { height: 14px; border-radius: 99px; background: #f0e0f8; overflow: hidden; margin: 6px 12px 10px; }
+.xpbar b { display: block; height: 100%; background: linear-gradient(90deg, #ffd23f, #ff9f43); border-radius: 99px; }
+.guide-skip { position: absolute; left: 12px; top: calc(var(--hud-h, 60px) + 78px); z-index: 6; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 99px; background: #fff; color: #8a4ea8; font: inherit; font-size: 16px; font-weight: 700; padding: 6px 14px; box-shadow: 0 0 0 3px #e2c8ee, 0 4px 0 3px #c8a8d8; cursor: pointer; }
+.guide-skip:active { transform: translateY(3px); }
+.guide-skip[hidden] { display: none; }
+body.in-mg .guide-skip { display: none; }

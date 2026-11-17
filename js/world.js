@@ -1,9 +1,13 @@
 'use strict';
 /* Mapa del mundo: vista cenital, Luna camina libremente y entra a los lugares. */
 
-const MAP_W = 48, MAP_H = 30;
-const T = { GRASS: 0, PATH: 1, WATER: 2, TREE: 3, PINE: 4, BUSH: 5, FLOWER: 6, ROCK: 7, PLANK: 8, BUILD: 9 };
-const SOLID = new Set([T.WATER, T.TREE, T.PINE, T.BUSH, T.ROCK, T.BUILD]);
+const MAP_W = 84, MAP_H = 50;   // ampliado: calle de tiendas al este, avenida sur, parque para perros y Valle Aventura
+const T = { GRASS: 0, PATH: 1, WATER: 2, TREE: 3, PINE: 4, BUSH: 5, FLOWER: 6, ROCK: 7, PLANK: 8, BUILD: 9, FENCE: 10, HEDGE: 11, DECO: 12 };
+const SOLID = new Set([T.WATER, T.TREE, T.PINE, T.BUSH, T.ROCK, T.BUILD, T.FENCE, T.HEDGE, T.DECO]);
+// Zonas nuevas (en casillas)
+const DOGPARK2 = { x0: 22, x1: 36, y0: 33, y1: 44, gate: 28 };
+const PEN2 = { x0: 14, x1: 20, y0: 32, y1: 35 };
+const VALLEY2 = { x0: 54, y0: 12, gateY: 30, riverY: 38, bridgeX: 67, tent: [57, 26, 3, 2], ranger: [58, 29], tower: [77, 25, 2, 3], chest: [57, 46], cave: [76, 47, 5, 2] };
 
 // Lugares: rect = [x, y, w, h] en casillas (sólido); trigger = casilla donde aparece "Entrar"
 const PLACES = [
@@ -14,7 +18,16 @@ const PLACES = [
   { id: 'bosque', name: 'Bosque aventura', rect: [3, 6, 4, 3], trigger: [5, 9], minDay: 3 },
   { id: 'parque', name: 'Parque', rect: [20, 14, 4, 2], trigger: [21, 13], minDay: 3 },
   { id: 'lago', name: 'Lago', rect: null, trigger: [34, 19], minDay: 1 },
+  { id: 'peluqueria', rect: [46, 5, 6, 4], trigger: [48, 9], minDay: 3, spot: true },
+  { id: 'heladeria', rect: [54, 6, 5, 3], trigger: [56, 9], minDay: 1, spot: true },
+  { id: 'panaderia', rect: [61, 5, 6, 4], trigger: [63, 9], minDay: 1, spot: true },
+  { id: 'biblioteca', rect: [69, 5, 6, 4], trigger: [71, 9], minDay: 1, spot: true },
+  { id: 'refugio', rect: [3, 25, 6, 4], trigger: [5, 29], minDay: 1, spot: true },
+  { id: 'perros', rect: null, trigger: [28, 34], minDay: 3, spot: true },
+  { id: 'aventura', rect: null, trigger: [58, 30], minDay: 1, spot: true },
 ];
+// Lugares nuevos: nombre y casillas a partir de los datos compartidos (js/extras.js)
+for (const pl of PLACES) if (pl.spot) pl.name = SPOT_UI[pl.id].name;
 const SPAWN = { x: 7 * TILE + 8, y: 18 * TILE + 10 };
 
 const world = {
@@ -51,6 +64,34 @@ function genMap() {
   v(31, 11, 19); h(19, 31, 32);
   // Senderos del parque
   h(17, 16, 27); v(16, 17, 26); v(27, 17, 26); h(26, 16, 27);
+  // Ampliación: calle de tiendas, avenida sur y conexiones
+  h(10, 44, 80); v(48, 9, 10); v(56, 9, 10); v(63, 9, 10); v(71, 9, 10);
+  h(30, 4, 54); v(12, 18, 30); v(31, 19, 30); v(50, 10, 30); v(5, 29, 30); v(DOGPARK2.gate, 30, 34);
+  // Valle Aventura: senderos, río y puente
+  const V = VALLEY2;
+  h(30, 55, 77); v(67, 30, 46); h(46, 57, 79);
+  for (let x = V.x0 + 1; x < MAP_W; x++) for (let y = V.riverY; y <= V.riverY + 1; y++) set(x, y, x === V.bridgeX ? T.PLANK : T.WATER);
+  reserve(V.x0, V.riverY - 1, MAP_W - 1, V.riverY + 2);
+  // seto del valle (con hueco en la puerta)
+  for (let y = V.y0; y < MAP_H; y++) if (y !== V.gateY) set(V.x0, y, T.HEDGE);
+  for (let x = V.x0; x < MAP_W; x++) set(x, V.y0, T.HEDGE);
+  reserve(V.x0 - 1, V.y0 - 1, V.x0 + 1, MAP_H - 1); reserve(V.x0, V.y0 - 1, MAP_W - 1, V.y0 + 1);
+  // estructuras sólidas del valle
+  const solidRect = ([x, y, w, hh], t = T.DECO) => { for (let yy = y; yy < y + hh; yy++) for (let xx = x; xx < x + w; xx++) set(xx, yy, t); reserve(x - 1, y - 1, x + w, y + hh + 1); };
+  solidRect(V.tent); solidRect(V.tower); solidRect(V.cave); solidRect([V.chest[0], V.chest[1], 1, 1]);
+  set(60, 28, T.DECO); reserve(56, 25, 61, 31);   // fogata
+  for (const [x, y] of [[59, 48], [61, 47], [63, 48], [55, 47]]) solidRect([x, y, 1, 1]);
+  // parque para perros: cerca con puerta
+  const D = DOGPARK2;
+  for (let x = D.x0; x <= D.x1; x++) { if (x !== D.gate && x !== D.gate + 1) set(x, D.y0, T.FENCE); set(x, D.y1, T.FENCE); }
+  for (let y = D.y0; y <= D.y1; y++) { set(D.x0, y, T.FENCE); set(D.x1, y, T.FENCE); }
+  set(D.gate + 1, D.y0, T.PATH);
+  reserve(D.x0 - 1, D.y0 - 1, D.x1 + 1, D.y1 + 1);
+  solidRect([24, 41, 3, 1]); solidRect([34, 35, 1, 1]);   // túnel y bebedero
+  // corral del refugio
+  for (let x = PEN2.x0; x <= PEN2.x1; x++) { set(x, PEN2.y0, T.FENCE); set(x, PEN2.y1, T.FENCE); }
+  for (let y = PEN2.y0; y <= PEN2.y1; y++) { set(PEN2.x0, y, T.FENCE); set(PEN2.x1, y, T.FENCE); }
+  reserve(PEN2.x0 - 1, PEN2.y0 - 1, PEN2.x1 + 1, PEN2.y1 + 1);
 
   // Edificios
   for (const p of PLACES) {
@@ -76,6 +117,7 @@ function genMap() {
     if (forest) { if (r < 0.7) m[y][x] = T.PINE; else if (r < 0.8) m[y][x] = T.FLOWER; continue; }
     const park = x >= 16 && x <= 27 && y >= 17 && y <= 26;
     if (park) { if (r < 0.1) m[y][x] = T.TREE; else if (r < 0.3) m[y][x] = T.FLOWER; continue; }
+    if (x > VALLEY2.x0 && y > VALLEY2.y0) { if (r < 0.16) m[y][x] = T.PINE; else if (r < 0.22) m[y][x] = T.TREE; else if (r < 0.3) m[y][x] = T.FLOWER; else if (r < 0.32) m[y][x] = T.ROCK; continue; }
     if (r < 0.07) m[y][x] = T.TREE;
     else if (r < 0.09) m[y][x] = T.BUSH;
     else if (r < 0.1) m[y][x] = T.ROCK;
@@ -98,6 +140,7 @@ function renderMapBg() {
     if (t === T.PLANK) { g.fillStyle = PAL.water; g.fillRect(X, Y, 16, 16); drawPlanks(g, X, Y + 3); continue; }
     drawGrass(g, X, Y, x, y);
     if (t === T.FLOWER) drawFlowers(g, X, Y, x, y);
+    if (t === T.FENCE && x > DOGPARK2.x0 && x < DOGPARK2.x1 && y > DOGPARK2.y0 && y < DOGPARK2.y1) { g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(X, Y, 16, 16); }
   }
   // objetos altos después del suelo
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
@@ -106,6 +149,8 @@ function renderMapBg() {
     if (t === T.PINE) drawTree(g, X, Y, true);
     if (t === T.BUSH) drawBush(g, X, Y);
     if (t === T.ROCK) drawRock(g, X, Y);
+    if (t === T.HEDGE) drawBush(g, X, Y);
+    if (t === T.FENCE) { const F = (a, b) => tileAt(a, b) === T.FENCE; drawFence(g, X, Y, F(x - 1, y), F(x + 1, y), F(x, y - 1), F(x, y + 1)); }
   }
   // Parque: fuente y bancas
   drawFountain(g, 21 * TILE - 4, 20 * TILE - 4, 40, 40);
@@ -128,6 +173,7 @@ function renderMapBg() {
   [x, y, w, h] = R('parque');
   drawArch(g, x, y - 6, w, h + 6, 'PARQUE');
   sign(g, 34 * TILE + 8, 17 * TILE + 2, 'LAGO', '#2c70c8');
+  drawExpansionBg(g);   // js/town.js
   return c;
 }
 
@@ -141,6 +187,7 @@ function spawnDailyBones(p) {
     const t = tileAt(tx, ty);
     if (t !== T.GRASS && t !== T.FLOWER && t !== T.PATH) continue;
     if (PLACES.some(pl => Math.abs(pl.trigger[0] - tx) < 2 && Math.abs(pl.trigger[1] - ty) < 2)) continue;
+    if (tx >= PEN2.x0 && tx <= PEN2.x1 && ty >= PEN2.y0 && ty <= PEN2.y1) continue;   // dentro del corral no se alcanza
     if (out.some(b => b.tx === tx && b.ty === ty)) continue;
     out.push({ tx, ty, i: out.length });
   }
@@ -387,6 +434,7 @@ function updateWorld(dt) {
       }
     }
   }
+  updateTown2(p, dt);   // perros, refugio y Valle Aventura (js/town.js)
   if (world.hide) { if (state.mode === 'world') updateHide(p, dt); }
   else if (!p.asleep) followLuna(p, dt);
   updateSquirrel(p, dt);
@@ -427,12 +475,15 @@ function updateWorld(dt) {
 
   // lugar cercano
   // durante el escondite no se entra a los lugares
-  const near = world.hide ? null : PLACES.find(pl => Math.abs(pl.trigger[0] * TILE + 8 - K.x) < (pl.id === 'lago' ? 22 : 14) && Math.abs(pl.trigger[1] * TILE + 8 - K.y) < 12) ||
-    (inPark(K.x, K.y) ? PLACES.find(pl => pl.id === 'parque') : null);   // dentro del parque también se puede entrar
+  const atDoor = world.hide ? null : PLACES.find(pl => Math.abs(pl.trigger[0] * TILE + 8 - K.x) < (pl.id === 'lago' ? 22 : 14) && Math.abs(pl.trigger[1] * TILE + 8 - K.y) < 12);
+  const thing = atDoor || world.hide ? null : nearThing2();   // perros y cofre (js/town.js): tienen prioridad dentro de los parques
+  const near = atDoor || (world.hide || thing ? null : inPark(K.x, K.y) ? PLACES.find(pl => pl.id === 'parque') : inDogPark(K.x, K.y) ? PLACES.find(pl => pl.id === 'perros') : null);   // dentro del parque también se puede entrar
   if (near !== world.near) { world.near = near || null; updatePrompt(); }
+  if ((thing && thing.label) !== (world.nearX && world.nearX.label)) { world.nearX = thing; updatePrompt(); }
   if (state.mode === 'world' && input.pressed.a) {
     if (p.asleep) wakeUp();
     else if (world.near) openPlace(world.near.id);
+    else if (world.nearX) world.nearX.run();
   }
   p.pos = { x: Math.round(K.x), y: Math.round(K.y) };
   followCamera(dt);
@@ -465,6 +516,8 @@ function placeAtTile(tx, ty) {
     if (Math.abs(pl.trigger[0] - tx) <= 1 && Math.abs(pl.trigger[1] - ty) <= 1) return pl;
   }
   if (inPark(tx * TILE + 8, ty * TILE + 8)) return PLACES.find(pl => pl.id === 'parque');
+  if (inDogPark(tx * TILE + 8, ty * TILE + 8)) return PLACES.find(pl => pl.id === 'perros');
+  if (Math.abs(tx - VALLEY2.ranger[0]) <= 1 && Math.abs(ty - VALLEY2.ranger[1]) <= 1) return PLACES.find(pl => pl.id === 'aventura');
   if (tileAt(tx, ty) === T.WATER && tx >= 33) return PLACES.find(pl => pl.id === 'lago');
   return null;
 }
@@ -489,7 +542,7 @@ function tapMap(wx, wy) {
   const pl = placeAtTile(tx, ty);
   if (pl) {
     if (world.near && world.near.id === pl.id) { openPlace(pl.id); return; }
-    const [gx, gy] = pl.id === 'parque' && inPark(world.kid.x, world.kid.y) ? [tx, ty] : pl.trigger;
+    const [gx, gy] = (pl.id === 'parque' && inPark(world.kid.x, world.kid.y)) || (pl.id === 'perros' && inDogPark(world.kid.x, world.kid.y)) ? [tx, ty] : pl.trigger;
     if (goTo(gx, gy, pl.id)) { sfx('tick'); speak(PLACE_UI[pl.id].name); }
     return;
   }
@@ -575,7 +628,9 @@ function drawWorld(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(Math.round(K.x - 6 - cx), Math.round(K.y - cy), 12, 3);
     drawDog(ctx, spr, K.x - cx, K.y + 1 - cy, K.dir === 'side' && K.face < 0);
   };
-  if (L.y < K.y) { drawLuna(); drawKid(); } else { drawKid(); drawLuna(); }
+  const drawables = [{ y: L.y, d: drawLuna }, { y: K.y, d: drawKid }];
+  drawTown2(ctx, cx, cy, t, drawables);   // perros, conejos, cofre… (js/town.js)
+  drawables.sort((a, b) => a.y - b.y).forEach(o => o.d());
   // correa (desde que Luna camina: semana 3)
   if (p.day >= 3 && !p.asleep && !world.hide) {
     const D = DOG_DIMS[st.size], legH = D.leg;

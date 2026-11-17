@@ -41,10 +41,10 @@ const DOG_DIMS = [
 ];
 const dogCache = new Map();
 /* pose: 'stand' | 'walk' | 'jump' | 'sleep' ; frame 0/1 ; devuelve canvas mirando a la derecha */
-function dogSprite({ coat = 'dorado', size = 2, pose = 'stand', frame = 0, eyesClosed = false, collar = false, acc = null, sad = false }) {
-  const key = [coat, size, pose, frame, eyesClosed, collar, acc, sad].join('|');
+function dogSprite({ coat = 'dorado', look = null, ears = null, size = 2, pose = 'stand', frame = 0, eyesClosed = false, collar = false, acc = null, sad = false }) {
+  const key = [look ? look.fur + look.dark + look.light + !!look.spots : coat, ears, size, pose, frame, eyesClosed, collar, acc, sad].join('|');
   if (dogCache.has(key)) return dogCache.get(key);
-  const c = COATS[coat] || COATS.dorado;
+  const c = look || COATS[coat] || COATS.dorado;   // look: pelaje de los perros del pueblo
   const D = DOG_DIMS[size];
   const W = 28, H = 22;
   const cv = mkCanvas(W, H), g = cv.getContext('2d');
@@ -98,9 +98,8 @@ function dogSprite({ coat = 'dorado', size = 2, pose = 'stand', frame = 0, eyesC
   px(hx + D.hw, sy, c.light, 2, 2);
   px(hx + D.hw - 1, sy + 1, c.light, 1, 2);
   px(hx + D.hw + 1, sy, INK, 1, 1); // nariz
-  // oreja caída
-  px(hx + 1, hy, c.dark, 2, D.hh - 1);
-  if (size >= 2) px(hx + 1, hy + D.hh - 1, c.dark, 1, 1);
+  if (ears === 'up') { px(hx + 1, hy - 2, c.dark, 2, 2); px(hx + 1, hy - 3, c.dark, 1, 1); }   // oreja parada
+  else { px(hx + 1, hy, c.dark, 2, D.hh - 1); if (size >= 2) px(hx + 1, hy + D.hh - 1, c.dark, 1, 1); }   // oreja caída
   // ojo
   const ex = hx + D.hw - 2, ey = hy + 2;
   if (eyesClosed || lying) px(ex - 1, ey + 1, INK, 2, 1);
@@ -373,7 +372,7 @@ function drawCross(g, cx, cy) {
   g.fillStyle = '#ffffff'; g.fillRect(cx - 8, cy - 8, 16, 16);
   g.fillStyle = '#e03c3c'; g.fillRect(cx - 2, cy - 6, 4, 12); g.fillRect(cx - 6, cy - 2, 12, 4);
 }
-function drawStall(g, x, y, w, h) {
+function drawStall(g, x, y, w, h, label = 'TIENDA', stripe = '#e04848') {
   g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 3, y + h - 2, w, 5);
   g.fillStyle = OUTLINE; g.fillRect(x + 2, y + 10, w - 4, h - 10);
   g.fillStyle = PAL.wood; g.fillRect(x + 3, y + 11, w - 6, h - 12);
@@ -385,9 +384,9 @@ function drawStall(g, x, y, w, h) {
   for (let i = 0; i < Math.floor((w - 16) / 8); i++) { g.fillStyle = cols[i % 5]; g.fillRect(x + 9 + i * 8, y + h - 19, 5, 5); }
   // toldo a franjas
   g.fillStyle = OUTLINE; g.fillRect(x, y + 2, w, 12);
-  for (let i = 0; i < w - 2; i += 6) { g.fillStyle = (i / 6) % 2 ? '#ffffff' : '#e04848'; g.fillRect(x + 1 + i, y + 3, Math.min(6, w - 2 - i), 10); }
-  for (let i = 0; i < w - 2; i += 6) { g.fillStyle = (i / 6) % 2 ? '#ffffff' : '#e04848'; g.fillRect(x + 2 + i, y + 13, 4, 2); }
-  sign(g, x + w / 2, y - 9, 'TIENDA', '#c04040');
+  for (let i = 0; i < w - 2; i += 6) { g.fillStyle = (i / 6) % 2 ? '#ffffff' : stripe; g.fillRect(x + 1 + i, y + 3, Math.min(6, w - 2 - i), 10); }
+  for (let i = 0; i < w - 2; i += 6) { g.fillStyle = (i / 6) % 2 ? '#ffffff' : stripe; g.fillRect(x + 2 + i, y + 13, 4, 2); }
+  sign(g, x + w / 2, y - 9, label, stripe);
 }
 function drawArch(g, x, y, w, h, label) {
   // arco del parque: dos pilares y viga
@@ -403,7 +402,7 @@ function drawArch(g, x, y, w, h, label) {
   // enredadera
   g.fillStyle = PAL.treeL; for (let i = 0; i < w; i += 5) g.fillRect(x + i, y + 9 + (i % 3), 2, 2);
 }
-function drawCave(g, x, y, w, h) {
+function drawCave(g, x, y, w, h, label = 'BOSQUE', crystals = false) {
   // entrada al bosque: rocas con boca oscura
   g.fillStyle = OUTLINE; g.fillRect(x, y + 4, w, h - 4); g.fillRect(x + 6, y, w - 12, 6);
   g.fillStyle = PAL.rockD; g.fillRect(x + 1, y + 5, w - 2, h - 6); g.fillRect(x + 7, y + 1, w - 14, 5);
@@ -412,7 +411,8 @@ function drawCave(g, x, y, w, h) {
   const mw = 22, mx = x + w / 2 - mw / 2;
   g.fillStyle = '#100808'; g.fillRect(mx, y + h - 22, mw, 22); g.fillRect(mx + 3, y + h - 25, mw - 6, 3);
   g.fillStyle = '#2c1c24'; g.fillRect(mx + 2, y + h - 20, mw - 4, 2);
-  sign(g, x + w / 2, y - 6, 'BOSQUE', '#3c6a3c');
+  if (crystals) for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#80f0ff' : '#c0a0ff'; g.fillRect(mx - 6 + i * 9 + (i > 1 ? 14 : 0), y + h - 8, 3, 6); }
+  sign(g, x + w / 2, y - 6, label, label === 'BOSQUE' ? '#3c6a3c' : '#5a4c8c');
 }
 function drawFountain(g, x, y, w, h) {
   g.fillStyle = OUTLINE; g.fillRect(x + 1, y + 1, w - 2, h - 2);
@@ -461,3 +461,55 @@ function drawHeart(g, x, y, full) {
   g.fillStyle = c; g.fillRect(x + 1, y + 1, 3, 4); g.fillRect(x + 5, y + 1, 3, 4); g.fillRect(x + 2, y + 4, 5, 2); g.fillRect(x + 3, y + 6, 3, 1); g.fillRect(x + 4, y + 7, 1, 1);
   if (full) { g.fillStyle = '#ffc0d8'; g.fillRect(x + 2, y + 2, 1, 1); }
 }
+
+// ====================== Ampliación del pueblo ======================
+// Cerca de madera en una casilla (conecta con las vecinas)
+function drawFence(g, x, y, l, r, u, d, col = PAL.wood) {
+  g.fillStyle = OUTLINE; g.fillRect(x + 6, y + 3, 4, 12);
+  g.fillStyle = col; g.fillRect(x + 7, y + 4, 2, 10);
+  const rail = (rx, ry, w, h) => { g.fillStyle = OUTLINE; g.fillRect(rx, ry - 1, w, h + 2); g.fillStyle = col; g.fillRect(rx, ry, w, h); };
+  if (l) { rail(x, y + 6, 8, 2); rail(x, y + 10, 8, 2); }
+  if (r) { rail(x + 8, y + 6, 8, 2); rail(x + 8, y + 10, 8, 2); }
+  if (u) { g.fillStyle = col; g.fillRect(x + 7, y, 2, 4); }
+  if (d) { g.fillStyle = col; g.fillRect(x + 7, y + 14, 2, 2); }
+}
+function drawTent(g, x, y, w, h) {
+  g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 3, y + h - 2, w, 5);
+  g.fillStyle = OUTLINE; g.beginPath(); g.moveTo(x + w / 2, y - 2); g.lineTo(x + w + 1, y + h); g.lineTo(x - 1, y + h); g.closePath(); g.fill();
+  g.fillStyle = '#e8a040'; g.beginPath(); g.moveTo(x + w / 2, y); g.lineTo(x + w - 1, y + h - 1); g.lineTo(x + 1, y + h - 1); g.closePath(); g.fill();
+  g.fillStyle = '#c07820'; g.fillRect(x + w / 2 - 1, y + 2, 2, h - 3);
+  g.fillStyle = '#5a3a20'; g.beginPath(); g.moveTo(x + w / 2, y + h * 0.4); g.lineTo(x + w / 2 + 7, y + h - 1); g.lineTo(x + w / 2 - 7, y + h - 1); g.closePath(); g.fill();
+}
+function drawTower(g, x, y, w, h) {
+  g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 4, y + h - 2, w, 6);
+  g.fillStyle = OUTLINE; g.fillRect(x + 2, y + 8, w - 4, h - 8); g.fillRect(x - 1, y + 2, w + 2, 9);
+  g.fillStyle = '#c8c0b0'; g.fillRect(x + 3, y + 9, w - 6, h - 10);
+  g.fillStyle = '#a89c8c'; for (let r = y + 13; r < y + h - 2; r += 6) g.fillRect(x + 3, r, w - 6, 1);
+  g.fillStyle = '#9a8a78'; g.fillRect(x, y + 3, w, 7);
+  for (let i = 0; i < w; i += 6) { g.fillStyle = OUTLINE; g.fillRect(x + i, y - 2, 4, 5); g.fillStyle = '#9a8a78'; g.fillRect(x + i + 1, y - 1, 2, 4); }
+  g.fillStyle = '#6a4a2a'; g.fillRect(x + w / 2 - 4, y + h - 13, 8, 12);
+  g.fillStyle = OUTLINE; g.fillRect(x + w / 2, y - 14, 1, 12); g.fillStyle = '#f04848'; g.fillRect(x + w / 2 + 1, y - 14, 8, 5);
+  sign(g, x + w / 2, y + 12, 'MIRADOR', '#7c5028');
+}
+function drawPillar(g, x, y, h) {
+  g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 1, y + 14, 14, 3);
+  g.fillStyle = OUTLINE; g.fillRect(x + 3, y + 15 - h, 10, h + 1);
+  g.fillStyle = '#e0d8c8'; g.fillRect(x + 4, y + 16 - h, 8, h - 1);
+  g.fillStyle = '#c0b8a8'; g.fillRect(x + 10, y + 16 - h, 2, h - 1);
+}
+function chestSprite(open) {
+  const c = mkCanvas(14, 12), g = c.getContext('2d');
+  const px = (x, y, col, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(x + 1, y + 1, w, h); };
+  px(0, 4, '#8a5a2a', 12, 6); px(0, 7, '#6a4020', 12, 1); px(5, 5, '#ffd23f', 2, 3);
+  if (open) { px(0, 0, '#d4a020', 12, 2); px(1, 2, '#f8e060', 10, 2); } else px(0, 2, '#d4a020', 12, 3);
+  return addOutline(c);
+}
+const CHEST_SPR = [chestSprite(false), chestSprite(true)];
+function bunnySprite(frame = 0) {
+  const c = mkCanvas(12, 11), g = c.getContext('2d');
+  const px = (x, y, col, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(x + 1, y + 1, w, h); };
+  px(1, 4 - frame, '#f4f0ea', 6, 4); px(6, 2 - frame, '#f4f0ea', 4, 4); px(7, 0 - frame, '#f4f0ea', 1, 3); px(9, 0 - frame, '#f4f0ea', 1, 3);
+  px(8, 3 - frame, INK); px(0, 5 - frame, '#ffffff', 2, 2); px(2, 8 - frame, '#e0d8d0', 2, 1); px(5, 8 - frame, '#e0d8d0', 2, 1);
+  return addOutline(c);
+}
+const BUNNY_SPR = [bunnySprite(0), bunnySprite(1)];

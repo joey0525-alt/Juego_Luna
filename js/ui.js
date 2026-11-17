@@ -12,6 +12,7 @@ const PLACE_UI = {
   casa: { icon: '🏠', name: 'Casa' }, vet: { icon: '🏥', name: 'Veterinaria' }, tienda: { icon: '🛒', name: 'Tienda' },
   escuela: { icon: '🎓', name: 'Escuela' }, bosque: { icon: '🌲', name: 'Bosque' }, parque: { icon: '🌳', name: 'Parque' }, lago: { icon: '🦆', name: 'Lago' },
 };
+for (const [id, u] of Object.entries(SPOT_UI)) PLACE_UI[id] = { icon: u.icon, name: u.name };   // lugares nuevos (js/extras.js)
 const STAGE_ICON = { recien: '🐣', bebe: '🍼', cachorra: '🐶', joven: '🐕', adulta: '🎂' };
 
 // La voz (speak) y los ladridos (dogSound) viven en js/voice.js y js/sounds.js, compartidos con el 3D.
@@ -215,7 +216,7 @@ function updatePrompt() {
     html = placeLocked(p, pl)
       ? `<button class="go-btn locked" data-locked="${pl.id}" aria-label="${ui.name}: cerrado. Faltan ${pl.minDay - p.day} días">🔒 ${ui.icon} <small>⏳${pl.minDay - p.day}</small></button>`
       : `<button class="go-btn${hint}" data-place="${pl.id}" aria-label="Entrar: ${ui.name}">Ⓐ ${ui.icon} <small>${ui.name}</small></button>`;
-  }
+  } else if (world.nearX) html = `<button class="go-btn ${world.nearX.warn ? 'locked' : ''}" data-near aria-label="${esc(world.nearX.label)}">Ⓐ ${world.nearX.icon} <small>${esc(world.nearX.label)}</small></button>`;
   el.hidden = !html;
   setHTML(el, html);
 }
@@ -382,6 +383,13 @@ function placeHTML(id) {
     }
     return h + '</div>';
   }
+  if (SPOT_UI[id]) {   // lugares nuevos: mismas acciones que en el 3D
+    const info = spotInfo(id, p);
+    if (info) h += `<div class="wallet">${info}</div>`;
+    h += (id === 'perros' ? vacWarn(p) : '') + '<div class="opts big">';
+    for (const [doId, icon, label, badge, fx] of spotActions(id, p, !p.asleep)) h += opt(doId, icon, label, { fx, ...(badge ? { badge, why: SPOT_WHY[badge] || 'Ahora no' } : {}) });
+    return h + '</div>';
+  }
   if (id === 'lago') {
     h += vacWarn(p) + '<div class="opts big">';
     h += opt('duckfeed', '🌾', 'Dar de comer', { fx: '🦆🦴', ...(sleeping || {}) });
@@ -393,10 +401,51 @@ function placeHTML(id) {
   return h;
 }
 
+const SPOT_WHY = { '💤': 'Está dormida', '🐶': 'Luna no está contigo', '⏳': 'Otro día', '🦴': 'Faltan huesos', '✔': 'Ya está', '💧': 'No tiene sed', '⚡': 'No está cansada', '🔒': 'Primero habla con el guardabosques', '🛒': 'Compra galletas en la pastelería', '😴': 'Está cansada', '🤒': 'Está enfermita', '🍖': 'Tiene hambre' };
+// Acción de un lugar nuevo (reglas en js/extras.js)
+function spotDo2(act) {
+  const p = current.pet, id = openPlaceId, r = spotDo(id, act, p);
+  if (!r) return;
+  guideEvent('do:sp:' + act);
+  saveRoot();
+  const card = (html, say, after) => { openWin(html + '<div class="row-btns center"><button class="btn primary go" data-win="ok" autofocus aria-label="Listo">👍</button></div>', () => { openPlace(id); if (after) after(); }, 'card'); if (say) speak(say); };
+  if (r.special === 'story') return card(`<div class="result"><h2>📖</h2><div class="howto"><div><span>${r.icon}</span></div></div><p class="fact">${esc(r.text)}</p>${r.bone ? '<div class="gains"><span>🦴 +1</span></div>' : ''}</div>`, 'Dato perruno: ' + r.text);
+  if (r.special === 'quiz') {
+    quiz2 = r.q; speak(r.q.q);
+    openWin(`<div class="result"><h2>❓</h2><p class="fact">${esc(r.q.q)}</p><div class="quiz">${r.q.a.slice().sort(() => Math.random() - 0.5).map(([t, ok]) => `<button class="btn primary quiz-opt" data-quiz="${ok ? 1 : 0}">${esc(t)}</button>`).join('')}</div></div>`, () => openPlace(id), 'card');
+    return;
+  }
+  if (r.special === 'talk' || r.special === 'bag') { spawnValley2(p, true); refreshHUD(); return card(r.html, r.say); }
+  if (r.special === 'cookies' || r.special === 'treatShelter') {
+    if (r.special === 'treatShelter') town2.shelter.forEach(s => { s.happyT = 2.5; });
+    pop(r.icon, r.sub); speak(r.say); sfx('coin'); refreshHUD(); refreshPlace();
+    if (r.quest) setTimeout(() => { closeWin(); showQuest2(r.quest); }, 1200);
+    return;
+  }
+  if (r.start) speak(r.start);
+  if (id === 'refugio') town2.shelter.forEach(s => { s.happyT = 2.5; });
+  if (r.special2 === 'friends') town2.dogs.filter(d => d.def.park).forEach(d => { d.happyT = 2.5; });
+  applyFx(p, r.fx);
+  const e = today(p);
+  if (r.kind === 'meal') e.meals++; if (r.kind === 'water') e.water++; if (r.kind === 'play') e.play++; if (r.kind === 'care') e.care++;
+  addEvent(p, r.icon, r.msg);
+  const gains = Object.entries(r.fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
+  pop(r.icon, (gains ? '+' + gains : '') + (r.extra ? ' ' + r.extra : ''));
+  setTimeout(() => { speak(r.word); dogSound('happy', lunaSize()); }, r.start ? 1600 : 0);
+  sfx('coin'); saveRoot(); refreshHUD(); refreshPlace();
+}
+let quiz2 = null;
+function quizAnswer2(ok) {
+  const p = current.pet, r = answerQuiz(p, quiz2, ok);
+  pop(r.icon, r.sub); speak(r.say); if (ok) sfx('coin');
+  saveRoot(); refreshHUD(); closeWin('ok');
+}
+
 function placeDo(cmd) {
   const p = current.pet, e = today(p), d = p.day;
   const [k, arg] = cmd.split(':');
   switch (k) {
+    case 'sp': return spotDo2(arg);
     case 'eat': { const f = foodFor(d); doFx(f.fx, 'meal', f.msg, f.icon, '¡Ñam ñam!'); break; }
     case 'water': doFx({ hidratacion: 40 }, 'water', 'Luna bebió agua fresca.', '💧', '¡Glu glu!'); break;
     case 'treat': p.items.premio--; doFx({ felicidad: 10, saciedad: 5 }, 'treat', 'Le diste un premio.', '🦴', '¡Un premio!'); break;
@@ -484,7 +533,7 @@ function openDiary() {
     <h2>📖 Luna</h2><button class="btn close" data-win="close" aria-label="Cerrar">✖</button></div>`;
   // etapas como camino de crecimiento
   h += `<div class="grow" aria-label="Etapa: ${st.name}">${STAGES.map(s2 => `<span class="${s2.id === st.id ? 'now' : p.day > s2.to ? 'past' : ''}" title="${s2.name}">${STAGE_ICON[s2.id]}</span>`).join('<i>›</i>')}</div>`;
-  h += `<div class="weekbox"><span>🗓️ ${p.day}</span><span>⚖️ ${fmtWeight(p.weight)}</span><span>🔥 ${p.streak}</span></div>`;
+  h += `<div class="weekbox"><span>🗓️ ${p.day}</span><span>⚖️ ${fmtWeight(p.weight)}</span><span>🔥 ${p.streak}</span>${p.rpg && p.rpg.met ? `<span>${RANKS[rankOf(p.rpg.xp)]}</span>` : ''}</div>`;
   // rutina de hoy como estrellas
   h += groupH('⭐', 'Hoy') + `<div class="today">${r.map(x => { const ok = x.have >= x.need; return `<button class="tday ${ok ? 'ok' : ''}" data-say="${esc(x.label)}" aria-label="${esc(x.label)} ${ok ? 'hecho' : 'pendiente'}"><span>${x.icon}</span><b>${ok ? '⭐' : `${Math.min(x.have, x.need)}/${x.need}`}</b></button>`; }).join('')}</div>`;
   // pegatinas
@@ -493,7 +542,7 @@ function openDiary() {
     { key: 'allbones', icon: '🔍', text: 'Todos los huesos del día' }, { key: 'treasure1', icon: '💰', text: 'Primer tesoro' }, { key: 'squirrel', icon: '🐿️', text: 'Primera ardilla' },
     { key: 'hide1', icon: '🙈', text: 'Encontraste a Luna' }, { key: 'agility', icon: '🏃', text: 'Carrera perfecta' }, { key: 'ducks10', icon: '🦆', text: 'Muchos patos alimentados' }, { key: 'memory', icon: '🃏', text: 'Memoria perfecta' }, { key: 'potty', icon: '🧻', text: 'Aprendió a usar el papel' }, { key: 'fetch15', icon: '🥎', text: '15 pelotas' },
     ...LEVEL_DEFS.map(L => ({ key: 'lvl' + L.id, icon: ['🌲', '⛰️', '💎'][L.id - 1], text: L.name })),
-    ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon, text: t.name }))];
+    ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon, text: t.name })), ...EXTRA_STICKERS];
   const got = new Set(p.milestones.map(m => m.key));
   h += groupH('🏅', 'Pegatinas') + `<div class="stickers">${all.map(m => got.has(m.key)
     ? `<button class="stk" data-say="${esc(m.text)}" aria-label="${esc(m.text)}">${m.icon}</button>`

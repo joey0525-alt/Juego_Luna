@@ -20,6 +20,7 @@ const PLACE_HELP = {
   bosque: 'Este es el bosque. Lleva a Luna saltando hasta la casita y recoge huesos por el camino.',
   lago: 'Este es el lago. Dale de comer a los patos, míralos nadar y bebe agua fresca del bebedero.',
 };
+for (const [id, u] of Object.entries(SPOT_UI)) PLACE_HELP[id] = u.help;   // lugares nuevos (js/extras.js)
 
 function tut(p) {
   if (!p.tut) {
@@ -52,14 +53,18 @@ function goalForNeed(n, p) {
 function nextGoal(p) {
   const t = tut(p);
   if (t.step < TUT.length) return { ...TUT[t.step], key: 'tut-' + t.step, tutorial: true };
-  if (world.hide) return { icon: '🙈', key: 'hide', say: '¿Dónde está Luna? Camina y mira: si sale fuego, ¡estás muy cerca!' };
-  if (p.asleep) return { icon: '💤', key: 'sleep', say: 'Luna está durmiendo. Déjala descansar, o despiértala con A.' };
+  if (world.hide) return { icon: '🙈', key: 'hide', say: '¿Dónde está Luna? Camina y mira: si sale fuego, ¡estás muy cerca!', fixed: true };
+  if (p.asleep) return softGoal(p, true) || { icon: '💤', key: 'sleep', say: 'Luna está durmiendo. Déjala descansar, o despiértala con A.', fixed: true };
   const needs = needsOf(p);
-  const urgent = needs.find(n => n.level === 'bad') || needs.find(n => n.level === 'warn');
-  if (urgent) { const g = goalForNeed(urgent, p); if (g) return { ...g, key: 'need-' + urgent.icon }; }
-  if (t.focus && !t.visited[t.focus]) { const pl = PLACE_UI[t.focus]; return { icon: pl.icon, place: t.focus, key: 'focus-' + t.focus, say: `¡${pl.name} está abierto! Sigue la flecha.` }; }
-  const { next: r, waiting } = routinePending(p);
-  if (r) {
+  for (const n of [...needs.filter(x => x.level === 'bad'), ...needs.filter(x => x.level === 'warn')]) {
+    const key = 'need-' + n.icon, fixed = n.level === 'bad';
+    if (!fixed && isSkipped(key)) continue;   // lo urgente no se puede omitir; lo demás sí, con «Ahora no»
+    const g = goalForNeed(n, p);
+    if (g) return { ...g, key, fixed };
+  }
+  if (t.focus && !t.visited[t.focus] && !isSkipped('focus-' + t.focus)) { const pl = PLACE_UI[t.focus]; return { icon: pl.icon, place: t.focus, key: 'focus-' + t.focus, say: `¡${pl.name} está abierto! Sigue la flecha.` }; }
+  const { next: r } = routinePending(p);
+  if (r && !isSkipped('routine-' + r.icon)) {
     const map = {
       '🍖': { place: 'casa', doId: 'eat', say: 'Hora de comer. Ve a la casa y toca Comer.' },
       '💧': { place: 'casa', doId: 'water', say: 'Dale agua fresca a Luna en la casa.' },
@@ -70,25 +75,76 @@ function nextGoal(p) {
     }[r.icon];
     if (map) return { icon: r.icon, key: 'routine-' + r.icon, ...map };
   }
-  if (world.bones.length) return { icon: '🦴', key: 'bones', say: 'Todavía quedan huesos escondidos. ¡Búscalos!' };
-  if (world.treasure) return { icon: '💰', key: 'treasure', say: 'Luna huele un tesoro escondido. Camina por el mapa: si sale fuego, ¡estás muy cerca!' };
-  const idea = funIdea(p);
-  if (idea) return idea;
-  if (waiting && WAIT_SAY[waiting.icon]) return { ...WAIT_SAY[waiting.icon], key: 'wait-' + waiting.icon };
-  return { icon: '⭐', key: 'free', place: p.day >= 3 ? 'bosque' : null, say: '¡Luna está feliz! Vamos de aventura al bosque.' };
+  return softGoal(p, false) || { icon: '🍄', key: 'explore', place: 'aventura', say: '¡Vamos a explorar el Valle Aventura!' };
 }
 
-// Juegos que todavía no se jugaron hoy: Pío los sugiere para que nunca falte qué hacer
-function funIdea(p) {
-  const e = today(p), g = e.games || {}, d = p.day, tired = !!cantExercise(p);
-  const ideas = [
-    { id: 'memory', ok: true, icon: '🃏', place: 'casa', doId: 'memory', say: '¿Jugamos a la memoria? Ve a la casa y toca Memoria.' },
-    { id: 'ducks', ok: true, icon: '🦆', place: 'lago', doId: 'duckfeed', say: '¡Los patos tienen hambre! Ve al lago y dales su comida.' },
-    { id: 'agility', ok: d >= 3 && !tired, icon: '🏃', place: 'parque', doId: 'agility', say: '¡Carrera de obstáculos! Ve al parque y toca Carrera.' },
-    { id: 'hide', ok: d >= 5 && !tired, icon: '🙈', place: 'parque', doId: 'hide', say: '¡Juguemos al escondite! Ve al parque y toca Escondite.' },
-  ];
-  const it = ideas.find(x => x.ok && !g[x.id]);
-  return it ? { icon: it.icon, place: it.place, doId: it.doId, say: it.say, key: 'fun-' + it.id } : null;
+// Ideas para los tiempos muertos (las mismas que en el 3D, js/extras.js). Siempre hay alguna:
+// si Pío ya la recordó dos veces sin que pasara nada, o tocas «Ahora no», propone la siguiente.
+const skipUntil = new Map(), skipIdeas = new Set();
+let skipDay = 0;
+const isSkipped = key => (skipUntil.get(key.replace(/^zz-/, '')) || 0) > Date.now();
+function softGoal(p, sleeping) {
+  if (skipDay !== p.day) { skipDay = p.day; skipIdeas.clear(); }
+  const list = [];
+  if (world.bones.length) list.push({ icon: '🦴', key: 'bones', say: 'todavía quedan huesos escondidos. ¡Búscalos!' });
+  if (world.treasure) list.push({ icon: '💰', key: 'treasure', say: 'Luna huele un tesoro escondido. Camina por el mapa: si sale fuego, ¡estás muy cerca!' });
+  list.push(...funIdeas(p, sleeping, inValley2(world.kid.x, world.kid.y)));
+  if (p.rpg && p.rpg.respawn) { p.rpg.respawn = false; spawnValley2(p, true); }
+  const k = sleeping ? 'zz-' : '';
+  for (const x of list) { x.key = k + x.key; x.say = ideaSay(x.say, sleeping); }
+  let pick = list.find(x => !skipIdeas.has(x.key) && !isSkipped(x.key));
+  if (!pick) { skipIdeas.clear(); pick = list.find(x => !isSkipped(x.key)) || list[0]; }
+  return pick;
+}
+function skipGoal() {
+  const g = goalNow;
+  if (!g || g.fixed || g.tutorial) return;
+  skipUntil.set(g.key.replace(/^zz-/, ''), Date.now() + 10 * 60 * 1000);
+  world.route = null; sfx('tick');
+  refreshGuide();
+  speak('¡Está bien, después! ' + (goalNow && goalNow !== g ? goalNow.say : ''));
+  lastSpokenKey = goalNow ? goalNow.key : lastSpokenKey; $('#guide').classList.remove('new');
+}
+// Tiempos muertos: tras 20 s sin tocar nada, Pío recuerda qué hacer (máximo 2 veces por idea, luego otra)
+let lastInputT = performance.now(), nudgeT = 0, nudgeKey = '', nudgeN = 0;
+window.addEventListener('pointerdown', () => { lastInputT = performance.now(); }, true);
+window.addEventListener('keydown', () => { lastInputT = performance.now(); }, true);
+function idleNudge() {
+  const t = performance.now();
+  if (!goalNow || state.mode !== 'world' || world.route || !$('#win').hidden) return;
+  if (t - lastInputT < 20000 || t - nudgeT < 30000 || goalNow.key === 'sleep') return;
+  if (goalNow.key !== nudgeKey) { nudgeKey = goalNow.key; nudgeN = 0; }
+  const soft = /^(zz-)?(bones|treasure|fun-|again-|shop|wait-|quest-|valley|explore|focus-)/.test(goalNow.key);
+  if (nudgeN >= 2) {
+    if (!soft) { if (t - nudgeT < 90000) return; nudgeN = 0; }
+    else { skipIdeas.add(goalNow.key); refreshGuide(); nudgeKey = goalNow.key; nudgeN = 0; }
+  }
+  nudgeN++; nudgeT = t;
+  sayGuide();
+  $('#guide').classList.add('new');
+  pop(goalNow.icon, '🐦');
+}
+setInterval(() => { if (current && state.mode === 'world') { refreshGuide(); idleNudge(); } }, 1000);
+// Posición del objetivo de Pío en el mapa (lugar, perro, objeto del valle…)
+function goalPos(g) {
+  if (!g) return null;
+  if (g.place) { const pl = PLACES.find(x => x.id === g.place); return pl && { x: pl.trigger[0] * TILE + 8, y: pl.trigger[1] * TILE + 8, pl }; }
+  if (g.target) return target2(current.pet, g.target);
+  if (/bones$/.test(g.key) && world.bones.length) {
+    const K = world.kid; let best = null, bd = Infinity;
+    for (const b of world.bones) { const d = Math.hypot(b.tx * TILE + 8 - K.x, b.ty * TILE + 8 - K.y); if (d < bd) { bd = d; best = b; } }
+    return { x: best.tx * TILE + 8, y: best.ty * TILE + 8 };
+  }
+  return null;
+}
+// Tocar a Pío: habla y el avatar camina solo hasta el objetivo
+function guideGo() {
+  const g = goalNow;
+  if (!g || state.mode !== 'world' || world.hide) return;
+  const pos = goalPos(g);
+  if (!pos) return;
+  if (pos.pl) { if (world.near && world.near.id === pos.pl.id) openPlace(pos.pl.id); else goTo(pos.pl.trigger[0], pos.pl.trigger[1], pos.pl.id); return; }
+  goTo(Math.floor(pos.x / TILE), Math.floor((pos.y - 2) / TILE), null);
 }
 
 // ---------- Burbuja de Pío ----------
@@ -102,6 +158,7 @@ function refreshGuide() {
   goalNow = g;
   const pl = g.place ? PLACE_UI[g.place] : null;
   el.hidden = false;
+  const sk = $('#guideSkip'); if (sk) sk.hidden = !!g.fixed || !!g.tutorial || state.mode !== 'world';
   setHTML(el, `<span class="g-bird" aria-hidden="true">🐦</span><span class="g-bub"><b>${g.icon}</b>${pl ? `<i>➜</i><b>${pl.icon}</b>` : ''}</span>`);
   el.setAttribute('aria-label', 'Pío dice: ' + g.say);
   el.classList.toggle('new', g.key !== lastSpokenKey);
@@ -165,6 +222,11 @@ function guideCheck() {
     setTimeout(() => speak(say), 300);
     return true;
   };
+  if (!t.seen.v2 && t.step >= TUT.length) {   // novedades para quien ya jugaba (igual que en el 3D)
+    for (const pl of PLACES) if (pl.spot && p.day >= pl.minDay) t.seen['open-' + pl.id] = true;
+    t.focus = 'aventura'; t.visited.aventura = false;
+    return card('v2', NEWS_HTML, NEWS_SAY);
+  }
   if (!t.seen['stage-' + st.id]) {
     return card('stage-' + st.id, `<div class="result"><h2>🌱</h2><div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'jump', collar: p.day >= 8, acc: p.acc.worn }, 5)}</div>
       <div class="grow">${STAGES.map(s2 => `<span class="${s2.id === st.id ? 'now' : p.day > s2.to ? 'past' : ''}">${STAGE_ICON[s2.id]}</span>`).join('<i>›</i>')}</div></div>`,
@@ -176,7 +238,7 @@ function guideCheck() {
       t.focus = pl.id;
       return card('open-' + pl.id, `<div class="result"><h2>🎉</h2><div class="unlock"><span>🔓</span><span>${ui.icon}</span></div><h2>${ui.name}</h2>
         <div class="howto"><div><span>🐦</span><i>➜</i><span>⬇️ ${ui.icon}</span></div></div></div>`,
-        `¡Se abrió ${pl.id === 'escuela' || pl.id === 'tienda' ? 'la' : 'el'} ${ui.name}! Sigue la flecha amarilla para llegar. ${PLACE_HELP[pl.id]}`);
+        `¡Se abrió ${['escuela', 'tienda', 'peluqueria'].includes(pl.id) ? 'la' : 'el'} ${ui.name}! Sigue la flecha amarilla para llegar. ${PLACE_HELP[pl.id]}`);
     }
   }
   const due = VACCINES.find(v => ['disponible', 'atrasada'].includes(vaccineStatus(p, v)));
@@ -210,11 +272,14 @@ function showLockedCard(pl) {
 
 // ---------- Flecha guía en el mapa ----------
 function drawGuideArrow(ctx) {
-  if (!goalNow || !goalNow.place || state.mode !== 'world') return;
-  const pl = PLACES.find(x => x.id === goalNow.place);
-  if (!pl || (world.near && world.near.id === pl.id) || world.route) return;
+  if (!goalNow || state.mode !== 'world' || world.route) return;
+  const pos = goalPos(goalNow);
+  if (!pos || /bones$/.test(goalNow.key)) return;
+  const pl = pos.pl;
+  if (pl && world.near && world.near.id === pl.id) return;
+  if (!pl && Math.hypot(pos.x - world.kid.x, pos.y - world.kid.y) < 18) return;
   const { w, h } = viewSize();
-  const tx = pl.trigger[0] * TILE + 8 - world.cam.x, ty = pl.trigger[1] * TILE - world.cam.y;
+  const tx = pos.x - world.cam.x, ty = pos.y - 8 - world.cam.y;
   const t = world.t;
   const inView = tx > 12 && tx < w - 12 && ty > 34 && ty < h - 12;
   if (inView) {
@@ -227,7 +292,7 @@ function drawGuideArrow(ctx) {
     const ex = clamp(cx + Math.cos(ang) * r * (w / Math.min(w, h)), 18, w - 18), ey = clamp(cy + Math.sin(ang) * r, 30, h - 18);
     const pulse = Math.sin(t * 6) * 3;
     bigArrow(ctx, Math.round(ex + Math.cos(ang) * pulse), Math.round(ey + Math.sin(ang) * pulse), ang);
-    emojiBubble(ctx, Math.round(ex - Math.cos(ang) * 20), Math.round(ey - Math.sin(ang) * 20 - 9), PLACE_UI[pl.id].icon);
+    emojiBubble(ctx, Math.round(ex - Math.cos(ang) * 20), Math.round(ey - Math.sin(ang) * 20 - 9), pl ? PLACE_UI[pl.id].icon : goalNow.icon);
   }
 }
 function bigArrow(ctx, x, y, ang) {

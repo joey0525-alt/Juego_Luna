@@ -375,7 +375,7 @@ function drawFetch(ctx) {
 }
 
 // Cuenta partidas por día (Pío sugiere los juegos que aún no se jugaron hoy)
-function markGame(pp, id) { const e = today(pp); e.games = e.games || {}; e.games[id] = (e.games[id] || 0) + 1; return e.games[id]; }
+// markGame() vive en js/extras.js (compartido con el 3D)
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 // ====================== Parque: carrera de obstáculos ======================
