@@ -220,14 +220,15 @@ function rpgOf(p) {
   return R;
 }
 const questDef = id => QUESTS.find(q => q.id === id) || DAILY.find(q => q.id === id);
-function questNow(p) { const R = rpgOf(p); if (!R.q) return null; const def = questDef(R.q.id); return def ? { def, n: R.q.n } : null; }
+// Misiones de juntar: el progreso es lo que hay en la mochila (cuenta también lo recogido antes de la misión)
+function questNow(p) { const R = rpgOf(p); if (!R.q) return null; const def = questDef(R.q.id); return def ? { def, n: def.type === 'collect' ? (R.bag[def.item] || 0) : R.q.n } : null; }
 function assignQuest(p) {
   const R = rpgOf(p);
   if (R.story < QUESTS.length) R.q = { id: QUESTS[R.story].id, n: 0 };
   else {
     if (R.dailyDay !== p.day) { R.dailyDay = p.day; R.daily = 0; }
     const left = item => VALLEY_ITEMS[item].n - R.got.filter(id => id[0] === VALLEY_ITEMS[item].pre).length;
-    const doable = d => d.type === 'collect' ? left(d.item) >= d.n : d.type === 'chest' ? R.chestDay !== p.day : d.type === 'dog' ? NICE_DOGS - greetedToday(p).length >= d.n : true;
+    const doable = d => d.type === 'collect' ? left(d.item) + (R.bag[d.item] || 0) >= d.n : d.type === 'chest' ? R.chestDay !== p.day : d.type === 'dog' ? NICE_DOGS - greetedToday(p).length >= d.n : true;
     const start = p.day * 5 + R.daily + (p.bornAt % 7);
     let def = DAILY[start % DAILY.length];
     for (let i = 0; i < DAILY.length; i++) { const d = DAILY[(start + i) % DAILY.length]; if (doable(d)) { def = d; break; } }
@@ -262,9 +263,11 @@ function questEvent(p, type, arg) {
   const R = rpgOf(p), q = questNow(p);
   if (!q || q.def.type !== type) return null;
   if ((type === 'collect' && q.def.item !== arg) || (type === 'visit' && q.def.poi !== arg) || (type === 'flag' && q.def.flag !== arg)) return null;
-  R.q.n++;
   const need = q.def.n || 1;
-  return { def: q.def, n: R.q.n, need, done: R.q.n >= need ? completeQuest(p, q.def) : null };
+  const n = type === 'collect' ? R.bag[arg] || 0 : ++R.q.n;
+  if (n < need) return { def: q.def, n, need, done: null };
+  if (type === 'collect') R.bag[arg] = n - need;   // se entregan al guardabosques
+  return { def: q.def, n, need, done: completeQuest(p, q.def) };
 }
 function completeQuest(p, def) {
   const R = rpgOf(p), before = rankOf(R.xp);
@@ -297,7 +300,13 @@ function talkRanger(p) {
       html: `<div class="result"><h2>🧭</h2><div class="howto"><div><span>🍄🪶💎🗝️</span></div></div><p class="fact">${q.def.icon} ${esc(q.def.say)}</p></div>` };
   }
   if (!R.q) assignQuest(p);
-  const q = questNow(p), need = q.def.n || 1, have = Math.min(q.n, need);
+  let q = questNow(p);
+  if (q.def.type === 'collect' && q.n >= (q.def.n || 1)) {   // ya las tenía en la mochila: se entregan al hablar
+    R.bag[q.def.item] = q.n - (q.def.n || 1);
+    const done = completeQuest(p, q.def);
+    return { first: false, say: done.say, html: questDoneHTML(done) };
+  }
+  const need = q.def.n || 1, have = Math.min(q.n, need);
   return { first: false, say: `Tu misión: ${q.def.say} Llevas ${have} de ${need}.`,
     html: `<div class="result"><h2>📜</h2><div class="stars">${q.def.icon}</div><p class="fact">${esc(q.def.say)}</p><div class="gains"><span>${have}/${need}</span><span>🦴 ${q.def.bones}</span><span>⭐ ${q.def.xp}</span></div></div>` };
 }
@@ -341,6 +350,7 @@ function questIdea(p, inValleyNow) {
   const q = questNow(p);
   if (!q) return null;
   const D = q.def, left = Math.max(0, (D.n || 1) - q.n), o = { icon: D.icon, key: 'quest-' + D.id, say: D.say.replace(/^Misión del día: /, '') };
+  if (D.type === 'collect' && !left) return { icon: D.icon, key: 'quest-give-' + D.id, place: 'aventura', doId: 'sp:quest', say: '¡ya tienes todo en la mochila! Llévaselo al guardabosques.' };
   if (D.type === 'collect') { if (inValleyNow) o.target = 'item:' + D.item; else o.place = 'aventura'; }
   else if (D.type === 'visit') o.target = 'mirador';
   else if (D.type === 'dog') o.target = 'dog';
