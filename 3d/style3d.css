@@ -159,3 +159,10 @@ body:has(#forestHud:not([hidden])) .hud, body:has(#forestHud:not([hidden])) .gui
 .guide-skip[hidden] { display: none; }
 @media (min-width: 701px) { .guide-skip { top: 160px; } }
 body:has(#forestHud:not([hidden])) .guide-skip, body:has(#gameHud:not([hidden])) .guide-skip { display: none; }
+/* Ampliación: datos de la biblioteca, preguntas y barra de explorador */
+.result .fact { font-size: 19px; font-weight: 600; line-height: 1.3; margin: 10px 4px; color: #4a2a5a; max-width: 34ch; margin-inline: auto; }
+.quiz { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.quiz .quiz-opt { font-size: 22px; padding: 10px 16px; }
+.xpbar { height: 14px; border-radius: 99px; background: #f0e0f8; overflow: hidden; margin: 6px 12px 10px; }
+.xpbar b { display: block; height: 100%; background: linear-gradient(90deg, #ffd23f, #ff9f43); border-radius: 99px; }
+.go-btn small { font-size: 15px; font-weight: 700; }
