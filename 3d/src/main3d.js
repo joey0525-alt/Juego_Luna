@@ -628,7 +628,7 @@ function buildDogPark(pl) {
 }
 // Valle Aventura: seto con puerta, campamento del guardabosques, río con puente, mirador, ruinas y cueva de cristal
 const valleyPOI = { mirador: [65, 22.6], chest: [47.2, 42], cave: [65, 43.4] };
-let ranger = null, chestMesh = null, valleyLight = null;
+let ranger = null, chestMesh = null, valleyLight = null, atMirador3 = false;
 function buildValley(pl, r) {
   const V = VALLEY, g = new THREE.Group();
   g.add(at(mesh(G.box(V.x1 - V.x0 + 4, 0.025, V.z1 - V.z0 + 4), '#79c662', { cast: false, recv: true }), (V.x0 + V.x1) / 2 + 2, 0.012, (V.z0 + V.z1) / 2 + 2));
@@ -2448,7 +2448,9 @@ function updateValley3(dt, p, t) {
       showQuest3(r.quest);
     }
   }
-  if (Math.hypot(kidS.x - valleyPOI.mirador[0], kidS.z - valleyPOI.mirador[1]) < 2) {
+  const atM = Math.hypot(kidS.x - valleyPOI.mirador[0], kidS.z - valleyPOI.mirador[1]) < 2;
+  if (atM && !atMirador3) {   // solo al llegar, no cada cuadro
+    atMirador3 = true;
     const r = visitMirador(p);
     if (r) {
       burst(town, '✨', new THREE.Vector3(65, 4.6, 20.8), 6, 0.6);
@@ -2456,7 +2458,7 @@ function updateValley3(dt, p, t) {
       saveRoot(); refreshHUD();
       showQuest3(r.quest);
     }
-  }
+  } else if (!atM) atMirador3 = false;
   if (chestMesh) chestMesh.userData.lid.rotation.x = lerp(chestMesh.userData.lid.rotation.x, R.chestDay === p.day ? -1.1 : 0, 1 - Math.exp(-6 * dt));
   for (const b of bunnies) {
     b.wait -= dt;

@@ -228,7 +228,7 @@ function assignQuest(p) {
   else {
     if (R.dailyDay !== p.day) { R.dailyDay = p.day; R.daily = 0; }
     const left = item => VALLEY_ITEMS[item].n - R.got.filter(id => id[0] === VALLEY_ITEMS[item].pre).length;
-    const doable = d => d.type === 'collect' ? left(d.item) + (R.bag[d.item] || 0) >= d.n : d.type === 'chest' ? R.chestDay !== p.day : d.type === 'dog' ? NICE_DOGS - greetedToday(p).length >= d.n : true;
+    const doable = d => d.type === 'collect' ? left(d.item) + (R.bag[d.item] || 0) >= d.n : d.type === 'chest' ? R.chestDay !== p.day : d.type === 'dog' ? NICE_DOGS - greetedToday(p).length >= d.n : d.type === 'visit' ? !gameN(p, d.poi) : true;   // mirador: una vez al día
     const start = p.day * 5 + R.daily + (p.bornAt % 7);
     let def = DAILY[start % DAILY.length];
     for (let i = 0; i < DAILY.length; i++) { const d = DAILY[(start + i) % DAILY.length]; if (doable(d)) { def = d; break; } }

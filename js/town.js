@@ -219,10 +219,12 @@ function updateValley2(p, dt) {
     }
   }
   const M = tc(78, 29);
-  if (Math.hypot(K.x - M.x, K.y - M.y) < 20 && state.mode === 'world') {
+  const atM = Math.hypot(K.x - M.x, K.y - M.y) < 20;
+  if (atM && !town2.atMirador && state.mode === 'world') {   // solo al llegar, no cada cuadro
+    town2.atMirador = true;
     const r = visitMirador(p);
     if (r) { if (r.first) { pop('🗼', '👀'); speak(r.say); } saveRoot(); refreshHUD(); showQuest2(r.quest); }
-  }
+  } else if (!atM) town2.atMirador = false;
   for (const b of town2.bunnies) {
     b.wait -= dt;
     if (b.wait <= 0) {
