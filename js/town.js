@@ -73,6 +73,7 @@ function pickDogTarget2(dg) {
 }
 function updateTown2(p, dt) {
   initTown2();
+  updateBuddy2(p, dt);
   const K = world.kid, L = world.luna;
   const kidMoving = Math.hypot(K.x - town2.kpx, K.y - town2.kpy) > 0.05;
   town2.kpx = K.x; town2.kpy = K.y;
@@ -122,7 +123,7 @@ function updateTown2(p, dt) {
       }
     }
     const close = Math.hypot(K.x - dg.x, K.y - dg.y) < 40;
-    if (close && !dg.near && state.mode === 'world') showToast(dogLabel(D));
+    if (close && !dg.near && state.mode === 'world') showToast(dogLabel(D, p));
     dg.near = close;
   }
   for (const s of town2.shelter) { s.ph += dt; s.happyT -= dt; s.x = (PEN2.x0 + 3.5) * TILE + Math.sin(s.ph * 0.5) * 30; }
@@ -154,9 +155,28 @@ function greetDog2(dg) {
     for (let i = 0; i < 3; i++) world.floaters.push({ x: dg.x - 8 + i * 8, y: dg.y - 22 - i * 4, t: -i * 0.12, txt: '♥' });
     dogSound('happy', dogSize2(D), 0.7);
   }
-  pop(r.icon, r.sub); speak(r.say);
+  pop(r.friend && r.friend.up ? '💚' : r.icon, r.friend && r.friend.gift ? '🦴 +5' : r.sub); speak(r.say);
   saveRoot(); refreshHUD();
   if (r.quest) setTimeout(() => showQuest2(r.quest), 1200);
+}
+
+// ---------- Perrito adoptado: sigue a Luna ----------
+const buddy2 = { x: 0, y: 0, face: 1, anim: 0, moving: false, on: false };
+function updateBuddy2(p, dt) {
+  const L = world.luna, b = buddy2;
+  if (!p.buddy || p.asleep || world.hide) { b.on = false; return; }
+  if (!b.on) { b.on = true; b.x = L.x - 14; b.y = L.y + 4; }
+  const tx = L.x - L.face * 16, ty = L.y + 5, dx = tx - b.x, dy = ty - b.y, d = Math.hypot(dx, dy);
+  b.moving = d > 3;
+  if (b.moving) { const s = Math.min(d, (d > 40 ? 160 : 70) * dt); b.x += dx / d * s; b.y += dy / d * s; b.anim += s; if (Math.abs(dx) > 1) b.face = Math.sign(dx); }
+}
+function drawBuddy2(ctx, cx, cy, drawables) {
+  const p = current.pet, b = buddy2;
+  if (!b.on) return;
+  drawables.push({ y: b.y, d: () => {
+    ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(Math.round(b.x - 6 - cx), Math.round(b.y - cy), 12, 2);
+    drawDog(ctx, dogSprite({ look: buddyLook(p), size: 1, pose: b.moving ? 'walk' : 'stand', frame: Math.floor(b.anim / 6) % 2, collar: collarColor(p) }), b.x - cx, b.y + 1 - cy, b.face < 0);
+  } });
 }
 
 // ---------- Valle Aventura ----------
@@ -177,7 +197,10 @@ function spawnValley2(p, force) {
   for (let i = 0; i < 7; i++) spots['s' + i] = valleyTile2(r, i >= 5);
   for (let i = 0; i < 4; i++) spots['f' + i] = valleyTile2(r, i >= 2);
   const keySpot = valleyTile2(r, true);
-  town2.items = valleyItemList(p).map(([id, item]) => ({ id, item, ...(item === 'cristal' ? tc(78, 46) : item === 'llave' ? keySpot : spots[id]) }));
+  // rastro de huellas: cada una cerca de la anterior
+  const trail = [valleyTile2(r, false)];
+  for (let i = 1; i < TRACK_N; i++) { let q = null; for (let k = 0; k < 40 && !q; k++) { const c = valleyTile2(r, r() < 0.4), d = Math.hypot(c.x - trail[i - 1].x, c.y - trail[i - 1].y); if (d > 60 && d < 150) q = c; } trail.push(q || valleyTile2(r, false)); }
+  town2.items = valleyItemList(p).map(([id, item]) => ({ id, item, ...(item === 'cristal' ? tc(78, 46) : item === 'llave' ? keySpot : item === 'huella' ? trail[+id.slice(1)] : spots[id]) }));
   town2.itemsN = rpgOf(p).got.length;
 }
 function updateValley2(p, dt) {
@@ -242,6 +265,7 @@ function target2(p, kind) {
 function drawTown2(ctx, cx, cy, t, drawables) {
   const p = current.pet, R = rpgOf(p), W = view.w, H = view.h;
   const vis = (x, y) => x - cx > -40 && x - cx < W + 40 && y - cy > -40 && y - cy < H + 40;
+  drawBuddy2(ctx, cx, cy, drawables);
   // objetos del valle
   for (const v of town2.items) if (vis(v.x, v.y)) emojiBubble(ctx, Math.round(v.x - cx), Math.round(v.y - cy - 20 + Math.sin(t * 3 + v.x) * 2), VALLEY_ITEMS[v.item].icon);
   // cofre

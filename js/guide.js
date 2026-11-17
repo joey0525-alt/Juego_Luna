@@ -198,7 +198,7 @@ function guideCheck() {
     return card('v2', NEWS_HTML, NEWS_SAY);
   }
   if (!t.seen['stage-' + st.id]) {
-    return card('stage-' + st.id, `<div class="result"><h2>🌱</h2><div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'jump', collar: p.day >= 8, acc: p.acc.worn }, 5)}</div>
+    return card('stage-' + st.id, `<div class="result"><h2>🌱</h2><div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'jump', collar: p.day >= 8 && collarColor(p), acc: p.acc.worn }, 5)}</div>
       <div class="grow">${STAGES.map(s2 => `<span class="${s2.id === st.id ? 'now' : p.day > s2.to ? 'past' : ''}">${STAGE_ICON[s2.id]}</span>`).join('<i>›</i>')}</div></div>`,
       `¡Luna creció! Ahora es ${st.name.toLowerCase()}.`, () => dogSound('happy', st.size));
   }
@@ -218,7 +218,7 @@ function guideCheck() {
       'Hoy le toca una vacuna a Luna, para que no se enferme. Ve a la veterinaria y toca Vacuna. ¡Es un pinchacito rápido!');
   }
   if (p.sick && !p.sick.treated && !t.seen['sick-' + p.sick.since]) {
-    return card('sick-' + p.sick.since, `<div class="result"><h2>🤒</h2><div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'stand', sad: true, collar: p.day >= 8 }, 5)}</div>
+    return card('sick-' + p.sick.since, `<div class="result"><h2>🤒</h2><div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'stand', sad: true, collar: p.day >= 8 && collarColor(p) }, 5)}</div>
       <div class="howto"><div><span>🤒</span><i>➜</i><span>🏥 💊</span></div></div></div>`,
       'Luna está enfermita. Llévala a la veterinaria y toca Curar. Después dale comida, agua y que descanse.', () => dogSound('sad', st.size));
   }

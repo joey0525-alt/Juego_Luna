@@ -1,0 +1,16 @@
+{
+  "name": "Luna, mi cachorrita",
+  "short_name": "Luna",
+  "description": "Cría a Luna desde cachorrita: pasea, juega y cuídala cada día.",
+  "start_url": "./3d/?v=3",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff0f8",
+  "theme_color": "#c48ad8",
+  "lang": "es",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

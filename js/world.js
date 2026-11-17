@@ -424,6 +424,7 @@ function updateWorld(dt) {
       const n = Math.floor(K.walkAcc / TILE);
       K.walkAcc -= n * TILE;
       guideEvent('walk');
+      { const rs = rainWalkStep(p); if (rs) showToast(rs); }   // la lluvia moja (js/fun.js)
       if (p.day >= 3) {
         e.walkTiles += n;
         if (e.walkTiles >= WALK_GOAL && !e.walk) {
@@ -620,7 +621,7 @@ function drawWorld(ctx) {
     if (lunaHidden) return;
     const pose = p.asleep ? 'sleep' : L.moving ? 'walk' : 'stand';
     const frame = Math.floor(L.anim / 6) % 2;
-    const spr = dogSprite({ coat: p.coat, size: st.size, pose, frame: L.moving ? frame : Math.floor(t * 2) % 2, eyesClosed: p.day < 2 || p.asleep, collar: p.day >= 8, acc: p.acc.worn, sad: moodOf(p) === 'triste' || moodOf(p) === 'enferma' });
+    const spr = dogSprite({ coat: p.coat, size: st.size, pose, frame: L.moving ? frame : Math.floor(t * 2) % 2, eyesClosed: p.day < 2 || p.asleep, collar: p.day >= 8 && collarColor(p), acc: p.acc.worn, sad: moodOf(p) === 'triste' || moodOf(p) === 'enferma' });
     ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(Math.round(L.x - 8 - cx), Math.round(L.y - cy), 16, 3);
     drawDog(ctx, spr, L.x - cx, L.y + 1 - cy, L.face < 0);
   };

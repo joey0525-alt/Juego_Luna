@@ -158,6 +158,10 @@ document.addEventListener('click', ev => {
   if (d.wake !== undefined) return wakeUp();
   if (d.diary !== undefined) return openDiary();
   if (d.map !== undefined) return openMap2();
+  if (d.photo !== undefined) return takePhoto2();
+  if (d.album !== undefined) { closeWin(); state.mode = 'panel'; return openFun('album', current.pet, funUI2()); }
+  if (d.rename !== undefined) { closeWin(); state.mode = 'panel'; return openFun('rename', current.pet, funUI2()); }
+  if (d.homeshop !== undefined) { closeWin(); state.mode = 'panel'; return openFun('homeshop', current.pet, { ...funUI2(), onClose: () => openPlace('tienda') }); }
   if (d.music !== undefined) { Music.start(); t.textContent = Music.toggle() ? '🎵' : '🔕'; return; }
   if (d.mute !== undefined) { muted = !muted; Music.refresh(); try { localStorage.setItem('luna.muted', muted ? '1' : '0'); } catch (e) { /* */ } t.textContent = muted ? '🔇' : '🔊'; if (muted && 'speechSynthesis' in window) speechSynthesis.cancel(); return; }
   if (d.export !== undefined) return exportSave();
@@ -181,6 +185,7 @@ function frame(t) {
 function update(dt) {
   input.pressed = input.queued; input.queued = {};
   if (!current) return;
+  if (XM.open) { input.pressed = {}; if (state.mode === 'world') state.mode = 'panel'; }   // ventana común abierta: el mundo espera
   if (state.mode === 'world' || state.mode === 'panel') updateWorld(state.mode === 'world' ? dt : 0);
   else if (state.mode === 'mg' && mg) mg.update(dt);
 }
@@ -198,8 +203,9 @@ function simTick() {
   const wasDay = p.day;
   simulate(p, now(p));
   if (p.day !== wasDay) spawnDailyBones(p);
+  weatherTick(p); setFx(weatherFx());
   refreshHUD();
-  guideCheck();
+  if (!showPendingFun2()) guideCheck();
   if (Date.now() - lastSaveAt > 15000) saveRoot();
 }
 setInterval(simTick, 5000);
@@ -217,5 +223,6 @@ function boot() {
   const resume = root.activeId && root.profiles.find(x => x.id === root.activeId);
   if (resume) Cloud.refresh(resume).finally(() => openProfile(resume.id)); else showScreen('profiles');
   requestAnimationFrame(frame);
+  registerSW('./');   // app instalable y recordatorios (js/fun.js)
 }
 (document.fonts && document.fonts.load ? Promise.race([document.fonts.load('8px "Press Start 2P"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve()).then(boot, boot);

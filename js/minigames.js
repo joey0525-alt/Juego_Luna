@@ -23,7 +23,7 @@ function finishMinigame(res, rewardsFn, backTo) {
   speak(word);
   setTimeout(() => dogSound(stars ? 'happy' : 'sad', st.size), 900);
   showCard(`<div class="result">
-      <div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: stars ? 'jump' : 'stand', collar: p.day >= 8, acc: p.acc.worn, sad: !stars }, 5)}</div>
+      <div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: stars ? 'jump' : 'stand', collar: p.day >= 8 && collarColor(p), acc: p.acc.worn, sad: !stars }, 5)}</div>
       <div class="stars" aria-label="${stars} de 3 estrellas">${'⭐'.repeat(stars)}<span class="dim">${'⭐'.repeat(3 - stars)}</span></div>
       <h2>${word}</h2>
       <div class="gains">${res.bones ? `<span>🦴 +${res.bones}</span>` : ''}${res.extra || ''}</div>
@@ -271,7 +271,7 @@ function drawPlatform(ctx) {
   if (!(pl.inv > 0 && Math.floor(t * 12) % 2)) {
     const st = stageOf(current.pet.day);
     const pose = !pl.onGround ? 'jump' : Math.abs(pl.vx) > 10 ? 'walk' : 'stand';
-    const spr = dogSprite({ coat: current.pet.coat, size: Math.max(1, st.size), pose, frame: Math.floor(pl.anim / 7) % 2, collar: current.pet.day >= 8, acc: current.pet.acc.worn });
+    const spr = dogSprite({ coat: current.pet.coat, size: Math.max(1, st.size), pose, frame: Math.floor(pl.anim / 7) % 2, collar: current.pet.day >= 8 && collarColor(current.pet), acc: current.pet.acc.worn });
     drawDog(ctx, spr, pl.x - cx, pl.y + oy, pl.face < 0);
   }
   for (const f of m.floaters) pxText(ctx, f.txt, f.x - cx + 4, f.y + oy - f.t * 24, '#fff8b0', 8);
@@ -358,7 +358,7 @@ function drawFetch(ctx) {
     ctx.fillStyle = '#ffffff'; ctx.fillRect(X - 2, Y - 2, 1, 4);
   }
   const st = stageOf(current.pet.day);
-  const spr = dogSprite({ coat: current.pet.coat, size: Math.max(1, st.size), pose: !pl.onGround ? 'jump' : Math.abs(pl.vx) > 10 ? 'walk' : 'stand', frame: Math.floor(pl.anim / 7) % 2, collar: current.pet.day >= 8, acc: current.pet.acc.worn });
+  const spr = dogSprite({ coat: current.pet.coat, size: Math.max(1, st.size), pose: !pl.onGround ? 'jump' : Math.abs(pl.vx) > 10 ? 'walk' : 'stand', frame: Math.floor(pl.anim / 7) % 2, collar: current.pet.day >= 8 && collarColor(current.pet), acc: current.pet.acc.worn });
   drawDog(ctx, spr, pl.x, pl.y, pl.face < 0);
   for (const f of m.floaters) pxText(ctx, f.txt, f.x, f.y - f.t * 24, '#fff8b0', 8);
   pxText(ctx, `${Math.max(0, Math.ceil(m.dur - m.time))}s`, view.w - 8, 6, '#ffffff', 8, 'right');
@@ -467,7 +467,7 @@ function drawAgility(ctx) {
   const kid = kidSprite(current.avatar, 'side', true, Math.floor(m.dist / 9) % 2);
   drawDog(ctx, kid, kx, gy + 1, false);
   if (!(pl.inv > 0 && Math.floor(t * 12) % 2)) {
-    const spr = dogSprite({ coat: p.coat, size: Math.max(1, st.size), pose: pl.onGround ? 'walk' : 'jump', frame: Math.floor(pl.anim / 8) % 2, collar: p.day >= 8, acc: p.acc.worn });
+    const spr = dogSprite({ coat: p.coat, size: Math.max(1, st.size), pose: pl.onGround ? 'walk' : 'jump', frame: Math.floor(pl.anim / 8) % 2, collar: p.day >= 8 && collarColor(p), acc: p.acc.worn });
     drawDog(ctx, spr, pl.x, pl.y + 1, false);
   }
   const D = DOG_DIMS[Math.max(1, st.size)];
@@ -566,7 +566,7 @@ function drawDucks(ctx) {
   const kid = kidSprite(current.avatar, 'up', !!m.walking, Math.floor((m.kidAnim || 0) * 6) % 2);
   drawDog(ctx, kid, m.kidX, shore + 20, false);
   const st = stageOf(p.day);
-  const spr = dogSprite({ coat: p.coat, size: st.size, pose: m.floaters.length ? 'jump' : 'stand', frame: Math.floor(t * 2) % 2, collar: p.day >= 8, acc: p.acc.worn });
+  const spr = dogSprite({ coat: p.coat, size: st.size, pose: m.floaters.length ? 'jump' : 'stand', frame: Math.floor(t * 2) % 2, collar: p.day >= 8 && collarColor(p), acc: p.acc.worn });
   drawDog(ctx, spr, m.kidX + 20, shore + 22, m.kidX + 20 > view.w - 20);
   for (const f of m.floaters) pxText(ctx, f.txt, f.x, f.y - f.t * 20, '#fff8b0', 8);
   pxText(ctx, `${Math.max(0, Math.ceil(m.dur - m.time))}s`, view.w - 8, 28, '#ffffff', 8, 'right');
@@ -674,7 +674,8 @@ function finishTrain() {
   m.over = true;
   const key = m.trick.id, after = trainAfter(p, key, m.ok);
   sfx(m.ok >= 2 ? 'win' : 'lose');
-  finishMinigame({ stars: m.ok, bones: m.ok, extra: `<span>${m.trick.icon || '🎓'} ${starBar(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}` },
+  const isContest = key === 'contest';
+  finishMinigame({ stars: m.ok, bones: isContest ? (MEDALS[m.ok] || {}).bones || 0 : m.ok, extra: isContest ? contestExtra(m.ok) : `<span>${m.trick.icon || '🎓'} ${starBar(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}` },
     pp => trainRewards(pp, key, m.ok, after), m.isPotty ? 'casa' : 'escuela');   // js/extras.js
 }
 function drawArrow(ctx, x, y, dir, color, s = 3) {
@@ -710,7 +711,7 @@ function drawTrain(ctx) {
   // Luna y entrenadora
   const st = stageOf(current.pet.day);
   const pose = m.flash && m.flash.ok ? 'jump' : 'stand';
-  const spr = dogSprite({ coat: current.pet.coat, size: st.size, pose, collar: true, acc: current.pet.acc.worn, sad: m.flash && !m.flash.ok });
+  const spr = dogSprite({ coat: current.pet.coat, size: st.size, pose, collar: collarColor(current.pet), acc: current.pet.acc.worn, sad: m.flash && !m.flash.ok });
   ctx.save(); ctx.translate(Math.round(view.w / 2 - 28), view.h - 30 - spr.height * 2 + 2); ctx.scale(2, 2); ctx.drawImage(spr, 0, 0); ctx.restore();
   if (m.flash) pxText(ctx, m.flash.ok ? '⭐' : '❌', view.w / 2, view.h - 78, '#ffffff', 16);
 }

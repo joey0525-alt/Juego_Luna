@@ -77,7 +77,16 @@ const SHOP = [
   { id: 'lazo', short: 'Lazo', name: 'Lazo rosa', icon: '🎀', price: 20, desc: 'Accesorio para la cabeza.', acc: true },
   { id: 'gorro', short: 'Gorrito', name: 'Gorrito de lana', icon: '🧶', price: 25, desc: 'Accesorio para la cabeza.', acc: true },
   { id: 'gafas', short: 'Gafas', name: 'Gafas de sol', icon: '🕶️', price: 35, desc: '¡Luna súper estilosa!', acc: true },
+  { id: 'flor', short: 'Flor', name: 'Flor para la oreja', icon: '🌸', price: 18, desc: 'Una flor junto a la oreja.', acc: true },
+  { id: 'capa', short: 'Capa', name: 'Capa de superheroína', icon: '🦸', price: 30, desc: '¡Luna al rescate!', acc: true },
+  { id: 'corona', short: 'Corona', name: 'Corona de princesa', icon: '👑', price: 40, desc: 'Para la reina de la casa.', acc: true },
+  { id: 'collares', short: 'Collares', name: 'Collares de colores', icon: '🎨', price: 12, desc: 'Elige el color del collar.', once: true },
+  // regalos de fiestas (no se venden)
+  { id: 'reno', short: 'Reno', name: 'Cuernos de reno', icon: '🦌', price: 0, acc: true, event: true },
+  { id: 'calabaza', short: 'Calabaza', name: 'Disfraz de calabaza', icon: '🎃', price: 0, acc: true, event: true },
+  { id: 'fiesta', short: 'Fiesta', name: 'Gorro de fiesta', icon: '🥳', price: 0, acc: true, event: true },
 ];
+const SHOP_SALE = SHOP.filter(x => !x.event);
 
 const DAY_MILESTONES = {
   1: ['🐣', '¡Nació Luna! Pesa unos 350 g y tiene los ojitos cerrados.'],

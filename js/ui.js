@@ -125,6 +125,7 @@ function createProfile(ev) {
   const name = String(f.get('name') || '').trim().slice(0, 16);
   if (!name) { $('#f-name').focus(); pop('✏️'); speak('Escribe tu nombre'); return; }
   const pr = { id: uid(), name, avatar: f.get('avatar') || AVATARS[0], createdAt: Date.now(), pet: newPet(f.get('coat') || 'dorado') };
+  pr.pet.name = String(f.get('petname') || '').trim().slice(0, 14) || 'Luna';
   root.profiles.push(pr);
   saveRoot();
   openProfile(pr.id, true);
@@ -151,6 +152,8 @@ function openProfile(id, isNew) {
   captured = null;
   initWorld();
   enterWorld(p);
+  setPetName(p); setFx(weatherFx());   // nombre, clima y fiestas (js/fun.js)
+  setTimeout(() => { if (state.mode === 'world') showPendingFun2(); }, 1500);
   saveRoot();
   refreshHUD();
   state.mode = 'world';
@@ -171,7 +174,7 @@ function openProfile(id, isNew) {
     state.mode = 'panel';
     const needs = needsOf(p).slice(0, 4);
     showCard(`<div class="result">
-      <div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'jump', collar: p.day >= 8, acc: p.acc.worn }, 5)}</div>
+      <div class="big-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'jump', collar: p.day >= 8 && collarColor(p), acc: p.acc.worn }, 5)}</div>
       <h2>¡Te extrañé! 👋</h2>
       ${needs.length ? `<div class="need-row">${needs.map(n => `<span>${n.icon}</span>`).join('')}</div>` : '<div class="need-row"><span>💖</span></div>'}
       </div>`, '', () => { state.mode = 'world'; });
@@ -187,7 +190,7 @@ function refreshHUD() {
   const p = current.pet;
   const bars = STAT_INFO.map(i => {
     const v = Math.round(p.stats[i.key]);
-    return `<div class="hb ${v < 25 ? 'low' : ''}" title="${i.label}"><span aria-hidden="true">${i.icon}</span><i role="progressbar" aria-label="${i.label}" aria-valuenow="${v}" aria-valuemin="0" aria-valuemax="100"><b style="width:${v}%;background:${i.color}"></b></i></div>`;
+    return `<div class="hb ${v < 25 ? 'low' : ''}" title="${i.label}" data-say="${i.label}"><span aria-hidden="true">${i.icon}</span><i role="progressbar" aria-label="${i.label}" aria-valuenow="${v}" aria-valuemin="0" aria-valuemax="100"><b style="width:${v}%;background:${i.color}"></b></i></div>`;
   }).join('');
   setHTML($('#hud'), `
     <div class="hud-left">
@@ -196,9 +199,11 @@ function refreshHUD() {
     </div>
     <div class="hud-bars">${bars}</div>
     <div class="hud-right">
-      <span class="chip" title="Huesos">🦴 ${p.bones}</span>
+      <span class="chip" title="Huesos" data-say="Tienes ${p.bones} huesos">🦴 ${p.bones}</span>
       <span class="chip" title="Semana">${STAGE_ICON[stageOf(p.day).id]} ${p.day}</span>
       <span class="chip" title="Racha">🔥 ${p.streak}</span>
+      ${weatherChipHTML()}
+      <button class="hbtn" data-photo aria-label="Sacar una foto">📷</button>
       <button class="hbtn" data-map aria-label="Mapa">🗺️</button>
       <button class="hbtn" data-diary aria-label="Diario">📖</button>
     </div>`);
@@ -296,7 +301,7 @@ const groupH = (icon, label) => `<h3 class="gh" aria-label="${label}"><span aria
 function placeHead(id) {
   const p = current.pet, st = stageOf(p.day), ui = PLACE_UI[id];
   return `<div class="ph">
-    <button class="ph-dog" data-do="pet" data-say="Mimos" aria-label="Dar mimos a Luna">${spriteImg({ coat: p.coat, size: st.size, pose: p.asleep ? 'sleep' : 'stand', eyesClosed: p.day < 2 || p.asleep, collar: p.day >= 8, acc: p.acc.worn, sad: moodOf(p) === 'triste' || moodOf(p) === 'enferma' }, 3)}</button>
+    <button class="ph-dog" data-do="pet" data-say="Mimos" aria-label="Dar mimos a Luna">${spriteImg({ coat: p.coat, size: st.size, pose: p.asleep ? 'sleep' : 'stand', eyesClosed: p.day < 2 || p.asleep, collar: p.day >= 8 && collarColor(p), acc: p.acc.worn, sad: moodOf(p) === 'triste' || moodOf(p) === 'enferma' }, 3)}</button>
     <h2><span aria-hidden="true">${ui.icon}</span> ${ui.name}</h2>
     <button class="btn help" data-help="${id}" aria-label="¿Qué hago aquí?">❓</button>
     <button class="btn close" data-win="close" aria-label="Salir">✖</button></div>`;
@@ -308,6 +313,7 @@ function placeHTML(id) {
   const sleeping = p.asleep ? NO.sleep : null;
   let h = placeHead(id);
   if (id === 'vet' && p.sick) h += `<div class="alert" data-say="Luna está enfermita">🤒 ${p.sick.treated ? '💊✔ 🛏️🍖💧' : ''}</div>`;
+  if (id === 'casa') h += roomPreviewHTML(p);   // muebles comprados (js/fun.js)
   if (id === 'casa' && p.mess) h += `<div class="alert">💩 ×${p.mess}</div>`;
   if (['casa', 'vet', 'parque', 'lago'].includes(id)) {   // mismas acciones que en el 3D (js/extras.js)
     if (id === 'parque' || id === 'lago') h += vacWarn(p);
@@ -326,8 +332,8 @@ function placeHTML(id) {
     return h;
   }
   if (id === 'tienda') {
-    h += `<div class="wallet">🦴 ${p.bones}</div><div class="opts">`;
-    for (const it of SHOP) {
+    h += `<div class="wallet">🦴 ${p.bones}</div><div class="row-btns center"><button class="btn primary" data-homeshop>🏡 Muebles y collares</button></div><div class="opts">`;
+    for (const it of SHOP_SALE) {
       const owned = (it.acc && p.acc.owned.includes(it.id)) || (it.once && p.items[it.id]);
       h += opt('buy:' + it.id, it.icon, it.short, { fx: `🦴${it.price}`, ...(owned ? NO.have : p.bones < it.price ? NO.money : {}) });
     }
@@ -337,6 +343,7 @@ function placeHTML(id) {
     const busy = e.sessions >= MAX_SESSIONS ? NO.wait : canPlay(p);
     h += '<div class="opts">';
     for (const t of TRICKS) h += opt('trick:' + t.id, t.icon, t.short, { fx: starBar(p.tricks[t.id] || 0), ...(d < t.min ? lockFor(t.min) : busy || {}) });
+    { const cs = contestState(p); h += opt('trick:contest', '🏆', 'Concurso', { fx: '🥇🦴', ...(cs ? { badge: cs[0], why: cs[1] } : canPlay(p) || {}) }); }
     return h + '</div>';
   }
   if (id === 'bosque') {
@@ -375,6 +382,7 @@ function spotDo2(act) {
     return;
   }
   if (r.special === 'talk' || r.special === 'bag') { spawnValley2(p, true); refreshHUD(); return card(r.html, r.say); }
+  if (r.special === 'adopt' || r.special === 'bake') { closeWin(); state.mode = 'panel'; return openFun(r.special, p, funUI2()); }
   if (r.special === 'cookies' || r.special === 'treatShelter') {
     if (r.special === 'treatShelter') town2.shelter.forEach(s => { s.happyT = 2.5; });
     pop(r.icon, r.sub); speak(r.say); sfx('coin'); refreshHUD(); refreshPlace();
@@ -469,7 +477,7 @@ function openDiary() {
   state.mode = 'panel';
   speak('Diario de Luna');
   const r = routineFor(p, p.day, e);
-  let h = `<div class="ph"><div class="ph-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'stand', collar: p.day >= 8, acc: p.acc.worn }, 3)}</div>
+  let h = `<div class="ph"><div class="ph-dog">${spriteImg({ coat: p.coat, size: st.size, pose: 'stand', collar: p.day >= 8 && collarColor(p), acc: p.acc.worn }, 3)}</div>
     <h2>📖 Luna</h2><button class="btn close" data-win="close" aria-label="Cerrar">✖</button></div>`;
   // etapas como camino de crecimiento
   h += `<div class="grow" aria-label="Etapa: ${st.name}">${STAGES.map(s2 => `<span class="${s2.id === st.id ? 'now' : p.day > s2.to ? 'past' : ''}" title="${s2.name}">${STAGE_ICON[s2.id]}</span>`).join('<i>›</i>')}</div>`;
@@ -479,10 +487,12 @@ function openDiary() {
   // pegatinas
   const all = allStickers();   // lista común (js/extras.js)
   const got = new Set(p.milestones.map(m => m.key));
+  h += `<div class="diary-tools"><button class="btn" data-album>📸 Álbum</button><button class="btn" data-rename>✏️ ${esc(petName(p))}</button>${p.buddy ? `<span class="chip">🐶 ${esc(p.buddy.name)}</span>` : ''}</div>`;
+  h += goalsHTML(p);
   h += groupH('🏅', 'Pegatinas') + `<div class="stickers">${all.map(m => got.has(m.key)
     ? `<button class="stk" data-say="${esc(m.text)}" aria-label="${esc(m.text)}">${m.icon}</button>`
     : `<span class="stk off" aria-label="Pegatina sin conseguir">❔</span>`).join('')}</div>`;
-  h += parentsHTML(p, e, current.name);
+  h += parentsHTML(p, e, current.name).replace('</details>', remindersHTML() + '</details>');
   openWin(h, () => { state.mode = 'world'; updatePrompt(); }, 'place diary');
 }
 
@@ -539,4 +549,16 @@ function openMap2() {
     if (world.near && world.near.id === pl.id) openPlace(pl.id);
     else if (goTo(pl.trigger[0], pl.trigger[1], pl.id)) { sfx('tick'); speak(PLACE_UI[pl.id].name); }
   });
+}
+
+// ---------- Mejoras comunes (js/fun.js): ventana común, foto, álbum, nombre ----------
+function funUI2() { return { prId: current.id, save: saveRoot, refresh: () => { refreshHUD(); refreshPlace(); }, onClose: () => { if (state.mode === 'panel' && $('#win').hidden) state.mode = 'world'; updatePrompt(); refreshGuide(); } }; }
+function showPendingFun2() { if (!current || !$('#win').hidden) return false; const ok = showPendingFun(current.pet, { ...funUI2(), onDone: () => { state.mode = 'world'; updatePrompt(); } }); if (ok) state.mode = 'panel'; return ok; }
+function takePhoto2() {
+  if (!current) return;
+  render();
+  const n = takePhoto($('#view'), current.id, current.pet, PLACE_UI[(world.near || {}).id]?.name || '');
+  sfx('coin'); pop('📸', `${n}/12`); speak('¡Foto guardada en el álbum!');
+  const f = document.createElement('div'); f.className = 'flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 400);
+  saveRoot();
 }

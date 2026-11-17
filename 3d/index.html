@@ -8,7 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style3d.css?v=5">
+  <link rel="stylesheet" href="style3d.css?v=6">
+  <link rel="stylesheet" href="../css/fun.css?v=6">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <meta name="theme-color" content="#c48ad8">
 </head>
 <body>
   <canvas id="c" aria-label="Mundo 3D de Luna. Flechas o WASD para caminar, Espacio para entrar."></canvas>
@@ -39,6 +42,7 @@
       <button type="button" class="slot cloud-login" data-cloudlogin aria-label="Entrar con mi usuario">☁️ Entrar</button>
       <form id="new-form" class="new-form" autocomplete="off">
         <input id="new-name" maxlength="16" placeholder="✏️ Tu nombre" aria-label="Tu nombre">
+        <input id="new-petname" maxlength="14" placeholder="🐶 Luna" aria-label="Nombre de la perrita">
         <div id="avatars3" class="coats avatars" aria-label="Tu cara"></div>
         <div id="coats" class="coats" aria-label="Color de Luna"></div>
         <button class="go" type="submit" aria-label="Nueva partida">➕ 🐶</button>
@@ -53,13 +57,14 @@
   <div id="pop" class="pop" aria-hidden="true"></div>
 
   <script>window.LUNA_BASE = '../';</script>
-  <script src="../js/data.js?v=5"></script>
-  <script src="../js/sim.js?v=5"></script>
-  <script src="../js/voice.js?v=5"></script>
-  <script src="../js/sounds.js?v=5"></script>
-  <script src="../js/music.js?v=5"></script>
-  <script src="../js/cloud.js?v=5"></script>
-  <script src="../js/extras.js?v=5"></script>
-  <script src="luna3d.js?v=5"></script>
+  <script src="../js/data.js?v=6"></script>
+  <script src="../js/sim.js?v=6"></script>
+  <script src="../js/voice.js?v=6"></script>
+  <script src="../js/sounds.js?v=6"></script>
+  <script src="../js/music.js?v=6"></script>
+  <script src="../js/cloud.js?v=6"></script>
+  <script src="../js/extras.js?v=6"></script>
+  <script src="../js/fun.js?v=6"></script>
+  <script src="luna3d.js?v=6"></script>
 </body>
 </html>

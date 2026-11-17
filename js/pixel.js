@@ -89,7 +89,9 @@ function dogSprite({ coat = 'dorado', look = null, ears = null, size = 2, pose =
   }
   // collar / pañuelo
   if (acc === 'panuelo') { px(hx, bodyTop, '#3060d0', 3, 2); px(hx + 1, bodyTop + 2, '#3060d0', 1, 1); }
-  else if (collar) px(hx, bodyTop, '#e03c3c', 2, 2);
+  else if (collar) px(hx, bodyTop, typeof collar === 'string' ? collar : '#e03c3c', 2, 2);
+  if (acc === 'capa') { px(bx - 1, bodyTop - 1, '#e03030', D.bw - 2, 2); px(bx - 1, bodyTop, '#c02020', 2, D.bh); }
+  if (acc === 'calabaza') { px(bx + 1, bodyTop, '#ff8c1a', D.bw - 2, D.bh - 1); px(bx + 2, bodyTop + 1, '#e06a00', 1, D.bh - 2); px(bx + D.bw - 4, bodyTop + 1, '#e06a00', 1, D.bh - 2); }
   // cabeza
   px(hx, hy, c.fur, D.hw, D.hh);
   if (c.spots) px(hx + D.hw - 3, hy + 1, c.dark, 3, 2);
@@ -110,6 +112,11 @@ function dogSprite({ coat = 'dorado', look = null, ears = null, size = 2, pose =
   if (acc === 'lazo') { px(hx + 2, hy - 2, '#f070b0', 1, 2); px(hx + 4, hy - 2, '#f070b0', 1, 2); px(hx + 3, hy - 1, '#c04080', 1, 1); }
   if (acc === 'gorro') { px(hx, hy - 2, '#d04848', D.hw, 2); px(hx + 1, hy - 3, '#d04848', D.hw - 2, 1); px(hx, hy - 1, '#f0f0f0', D.hw, 1); px(hx + Math.floor(D.hw / 2), hy - 4, '#f0f0f0', 1, 1); }
   if (acc === 'gafas' && !lying) { px(ex - 2, ey, INK, 4, 1); px(ex - 1, ey, INK, 2, 2); }
+  if (acc === 'flor') { px(hx + D.hw - 3, hy - 2, '#ff79bf', 3, 2); px(hx + D.hw - 2, hy - 3, '#ff79bf', 1, 1); px(hx + D.hw - 2, hy - 2, '#ffd23f', 1, 1); }
+  if (acc === 'corona') { px(hx + 1, hy - 2, '#f8d030', D.hw - 2, 2); px(hx + 1, hy - 3, '#f8d030', 1, 1); px(hx + Math.floor(D.hw / 2), hy - 4, '#f8d030', 1, 2); px(hx + D.hw - 2, hy - 3, '#f8d030', 1, 1); px(hx + Math.floor(D.hw / 2), hy - 2, '#e03c3c', 1, 1); }
+  if (acc === 'reno') { const br = '#8a5a2a'; px(hx + 1, hy - 3, br, 1, 3); px(hx, hy - 4, br, 1, 1); px(hx + 2, hy - 4, br, 1, 1); px(hx + D.hw - 2, hy - 3, br, 1, 3); px(hx + D.hw - 3, hy - 4, br, 1, 1); px(hx + D.hw - 1, hy - 4, br, 1, 1); }
+  if (acc === 'calabaza') { px(hx + 2, hy - 2, '#3c8c3c', 1, 2); px(hx + 3, hy - 2, '#58b048', 2, 1); }
+  if (acc === 'fiesta') { px(hx + 1, hy - 2, '#6fc2ff', 4, 2); px(hx + 2, hy - 4, '#ff6b8b', 2, 2); px(hx + 2, hy - 5, '#ffd23f', 1, 1); }
 
   addOutline(cv);
   dogCache.set(key, cv);

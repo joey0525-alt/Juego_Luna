@@ -45,6 +45,7 @@ const duck = d => { if (typeof Music !== 'undefined') Music.duck(d); };
 
 function speak(text) {
   if (isMuted() || !text) return;
+  if (typeof withName === 'function') text = withName(text);   // nombre elegido para la perrita (js/fun.js)
   const clean = String(text).replace(/[\u{1F300}-\u{1FAFF}☀-➿️]/gu, '').trim();
   if (!clean) return;
   stopVoice();

@@ -39,7 +39,7 @@ const DOG_DEFS = [
 ];
 const NICE_DOGS = DOG_DEFS.filter(d => d.mood !== 'grumpy').length;
 const SHELTER_LOOKS = [{ fur: '#b07848', dark: '#704020', light: '#e0b890' }, { fur: '#e8e0d0', dark: '#3c3434', light: '#ffffff', spots: true }, { fur: '#505050', dark: '#2a2a2a', light: '#9a9a9a' }];
-const dogLabel = D => `${DOG_MOOD[D.mood].icon} ${D.name} · ${D.owner ? 'con su dueño' : D.park ? 'en el parque' : 'suelto'} · ${DOG_MOOD[D.mood].word}`;
+const dogLabel = (D, p) => `${DOG_MOOD[D.mood].icon} ${D.name} · ${D.owner ? 'con su dueño' : D.park ? 'en el parque' : 'suelto'} · ${DOG_MOOD[D.mood].word}${p && D.mood !== 'grumpy' ? ' · ' + friendHearts(p, D.id) : ''}`;
 const greetedToday = p => Object.keys(today(p).dogs || {}).filter(k => !k.startsWith('ask-'));
 // Gruñido de un perro enojón (cuando el avatar o Luna entran en su círculo). Devuelve qué decir (o null).
 function dogGrowl(p, D, talk) {
@@ -76,8 +76,9 @@ function greetDog(p, D, st) {
     if (greetedToday(p).length >= 3) addMilestone(p, 'dogs3', '🐾', 'Luna jugó con tres perritos en un día.');
     r.icon = '🐕'; r.sub = '🦴 +1';
     r.quest = questEvent(p, 'dog');
+    r.friend = addFriendship(p, D);   // la amistad crece un poco cada día (js/fun.js)
   } else r.icon = '💚';
-  r.say = D.mood === 'shy' ? `¡Bien hecho! Con calma, ${D.name} se dejó acariciar.` : `¡${D.name} está feliz de jugar con ${st.lunaThere ? 'Luna' : 'ustedes'}!`;
+  r.say = (D.mood === 'shy' ? `¡Bien hecho! Con calma, ${D.name} se dejó acariciar.` : `¡${D.name} está feliz de jugar con ${st.lunaThere ? 'Luna' : 'ustedes'}!`) + (r.friend ? ' ' + r.friend.say : '');
   return r;
 }
 
@@ -136,9 +137,10 @@ function spotActions(id, p, lunaHere) {
       p.day >= 4 ? ['sp:drink', '🚰', 'Agua', needL || (p.stats.hidratacion >= 92 ? '💧' : ''), '💧'] : null],
     panaderia: [['sp:cookies', '🍪', 'Galletas', p.bones < 3 ? '🦴' : '', '🦴3'],
       ['sp:cake', '🎂', 'Pastelito', needL || (gameN(p, 'cake') ? '⏳' : p.bones < 5 ? '🦴' : ''), '🦴5'],
-      ['sp:smell', '👃', 'Oler', needL || (gameN(p, 'smell') ? '⏳' : ''), '💖']],
+      ['sp:smell', '👃', 'Oler', needL || (gameN(p, 'smell') ? '⏳' : ''), '💖'], ['sp:bake', '👩‍🍳', 'Hornear', gameN(p, 'bake') >= 5 ? '⏳' : '', '🍪']],
     biblioteca: [['sp:story', '📖', 'Cuento', '', '🦴'], ['sp:quiz', '❓', 'Preguntas', (today(p).quiz || 0) >= 3 ? '⏳' : '', '🦴']],
-    refugio: [['sp:visit', '🤗', 'Mimos', gameN(p, 'shelter') ? '⏳' : '', '💖🦴'], ['sp:treat', '🍪', 'Dar galleta', p.items.premio > 0 ? '' : '🛒', `🍪${p.items.premio}`]],
+    refugio: [['sp:visit', '🤗', 'Mimos', gameN(p, 'shelter') ? '⏳' : '', '💖🦴'], ['sp:treat', '🍪', 'Dar galleta', p.items.premio > 0 ? '' : '🛒', `🍪${p.items.premio}`],
+      ['sp:adopt', '🐶', 'Adoptar', p.buddy ? '✔' : adoptReady(p) ? '' : '🔒', `${Math.min(3, (p.shelterDays || []).length)}/3`]],
     perros: [['sp:friends', '🐕', 'Jugar con amigos', needL || playBlockX(p), '💖'], ['sp:frisbee', '🥏', 'Disco', needL || playBlockX(p), '💖🦴'],
       p.day >= 4 ? ['sp:drink', '🚰', 'Agua', needL || (p.stats.hidratacion >= 92 ? '💧' : ''), '💧'] : null],
     aventura: [['sp:quest', '📜', R.met ? 'Misión' : 'Hablar', '', '⭐'], ['sp:bag', '🎒', 'Mochila', R.met ? '' : '🔒', ''], ['sp:rest', '🔥', 'Fogata', p.stats.energia >= 95 ? '⚡' : '', '⚡']],
@@ -166,7 +168,9 @@ function spotDo(id, act, p) {
       return { fx: { felicidad: 5 }, kind: null, icon: '👃', msg: 'Olieron el pan recién hecho.', word: '¡Mmm, qué rico huele!', anim: '👃' };
     case 'biblioteca:story': return { special: 'story', ...readStory(p) };
     case 'biblioteca:quiz': return { special: 'quiz', q: nextQuiz(p) };
-    case 'refugio:visit': markGame(p, 'shelter'); p.bones += 2; addMilestone(p, 'shelter', '🏡', 'Visitaron a los perritos del refugio.');
+    case 'refugio:adopt': return adoptReady(p) ? { special: 'adopt' } : null;
+    case 'panaderia:bake': return { special: 'bake' };
+    case 'refugio:visit': markGame(p, 'shelter'); shelterVisit(p); p.bones += 2; addMilestone(p, 'shelter', '🏡', 'Visitaron a los perritos del refugio.');
       return { fx: { felicidad: 12 }, kind: 'play', icon: '🤗', msg: 'Dieron mimos a los perritos del refugio.', word: '¡Los perritos están felices!', extra: '🦴 +2', anim: '💖' };
     case 'refugio:treat': {
       p.items.premio--; p.bones += 2;
@@ -208,7 +212,7 @@ const DAILY = [
   { id: 'd-mirador', icon: '🗼', type: 'visit', poi: 'mirador', n: 1, xp: 10, bones: 2, say: 'Misión del día: sube al mirador a ver el pueblo.' },
   { id: 'd-cristal', icon: '💎', type: 'collect', item: 'cristal', n: 1, xp: 15, bones: 3, say: 'Misión del día: trae el cristal 💎 de la cueva.' },
 ];
-const VALLEY_ITEMS = { seta: { n: 7, pre: 's', icon: '🍄' }, pluma: { n: 4, pre: 'f', icon: '🪶' }, cristal: { n: 1, pre: 'c', icon: '💎' }, llave: { n: 1, pre: 'k', icon: '🗝️' } };
+const VALLEY_ITEMS = { seta: { n: 7, pre: 's', icon: '🍄' }, pluma: { n: 4, pre: 'f', icon: '🪶' }, cristal: { n: 1, pre: 'c', icon: '💎' }, llave: { n: 1, pre: 'k', icon: '🗝️' }, huella: { n: 6, pre: 'h', icon: '🐾' } };
 function rpgOf(p) {
   if (!p.rpg) p.rpg = { xp: 0, met: false, story: 0, q: null, bag: {}, day: 0, got: [], daily: 0, dailyDay: 0, key: false, chests: 0, quests: 0 };
   const R = p.rpg;
@@ -239,11 +243,14 @@ function valleyItemList(p) {
   out.push(['c0', 'cristal', 'cueva']);
   const q = questNow(p);
   if (q && q.def.type === 'chest' && !R.key) out.push(['k' + R.quests, 'llave', 'sur']);
+  const tr = R.met ? nextTrack(p) : -1;   // huellas: solo se ve la siguiente (js/fun.js)
+  if (tr >= 0) out.push(['h' + tr, 'huella', 'rastro']);
   return out.filter(([id]) => !R.got.includes(id));
 }
 // Recoger un objeto del valle. Devuelve { say, icon, sub, quest }.
 function pickValleyItem(p, id, item) {
   const R = rpgOf(p);
+  if (item === 'huella') return { ...pickTrack(p, +id.slice(1)), quest: null };
   R.got.push(id);
   if (item === 'llave') { R.key = true; return { icon: '🗝️', sub: '✔', say: '¡La llave dorada! Ahora abre el cofre de las ruinas.', quest: null }; }
   R.bag[item] = (R.bag[item] || 0) + 1; applyFx(p, { felicidad: 2 });
@@ -378,6 +385,7 @@ function funIdeas(p, sleeping, inValleyNow, doIds) {
   if (!sleeping && waiting && WAIT_SAY[waiting.icon]) list.push({ ...WAIT_SAY[waiting.icon], key: 'wait-' + waiting.icon });
   for (const it of ideas) if (it.again) list.push(mk(it, it.again, 'again-'));
   // Siempre queda algo: explorar el valle
+  list.splice(1, 0, ...funExtraIdeas(p, inValleyNow));   // clima, huellas, adopción, concurso… (js/fun.js)
   list.push({ icon: '🍄', key: 'explore', place: 'aventura', say: '¡vamos a explorar el Valle Aventura! Busca setas brillantes, plumas y conejitos.' });
   return list;
 }
@@ -482,7 +490,7 @@ function placeEffect(cmd, p) {
     case 'bench': return { fx: { energia: 8 }, kind: null, icon: '🪑', msg: 'Descansaron en la banca.', word: 'Descanso', anim: 'bench' };
     case 'ducks': e.ducks = true; outdoorRisk(p); return { fx: { felicidad: 10 }, kind: 'play', icon: '🦆', msg: 'Miraron a los patos.', word: '¡Cuac cuac!', anim: 'ducks' };
     case 'fountain': return { fx: { hidratacion: 30 }, kind: 'water', icon: '🚰', msg: 'Bebió del bebedero del lago.', word: '¡Glu glu!', anim: 'fountain' };
-    case 'splash': outdoorRisk(p); return { fx: { felicidad: 18, energia: -10, higiene: -18 }, kind: 'play', icon: '💦', msg: 'Chapoteó en la orilla.', word: '¡Splash!', anim: 'splash' };
+    case 'splash': outdoorRisk(p); if (weatherNow() === 'lluvia') markGame(p, 'rainsplash'); return { fx: { felicidad: 18, energia: -10, higiene: -18 }, kind: 'play', icon: '💦', msg: 'Chapoteó en la orilla.', word: '¡Splash!', anim: 'splash' };
     case 'treat-sick': p.sick.treated = true; p.stats.salud = clamp(p.stats.salud + 10, 0, 100); return { fx: {}, kind: null, icon: '💊', msg: 'La veterinaria le dio tratamiento a Luna.', word: 'Ahora necesita descansar, comer y beber agua', anim: 'vet' };
     case 'deworm': p.deworm.push(d); return { fx: {}, kind: null, icon: '💊', msg: 'Luna tomó su desparasitante.', word: '¡Pastilla tomada!', anim: 'vet' };
     case 'vac': {
@@ -516,10 +524,11 @@ function bathRewards(pp, frac) {
   addMilestone(pp, 'bath1', '🛁', 'Primer baño de Luna.');
 }
 const POTTY_TRICK = { id: 'potty', name: 'Hacer sus necesidades en su lugar', short: 'Papel', icon: '🧻', min: 3 };
-const trainTrick = id => (id === 'potty' ? POTTY_TRICK : TRICKS.find(x => x.id === id));
-const trainLevel = (p, id) => (id === 'potty' ? p.potty : (p.tricks[id] || 0));
+const trainTrick = id => (id === 'potty' ? POTTY_TRICK : id === 'contest' ? CONTEST : TRICKS.find(x => x.id === id));
+const trainLevel = (p, id) => (id === 'potty' ? p.potty : id === 'contest' ? 70 : (p.tricks[id] || 0));
 const trainAfter = (p, id, ok) => Math.min(100, trainLevel(p, id) + ok * 9 + (ok === 3 ? 6 : 0) + (p.stats.felicidad > 70 ? 4 : 0) + 2);
 function trainRewards(pp, id, ok, after) {
+  if (id === 'contest') return contestRewards(pp, ok);   // js/fun.js
   const t = trainTrick(id), before = trainLevel(pp, id), e = today(pp);
   e.sessions++; e.train++;
   if (id === 'potty') pp.potty = after; else pp.tricks[id] = after;
@@ -604,7 +613,11 @@ function allStickers() {
     { key: 'hide1', icon: '🙈', text: 'Encontraste a Luna' }, { key: 'agility', icon: '🏃', text: 'Carrera perfecta' }, { key: 'ducks10', icon: '🦆', text: 'Muchos patos alimentados' }, { key: 'memory', icon: '🃏', text: 'Memoria perfecta' },
     { key: 'potty', icon: '🧻', text: 'Aprendió a usar el papel' }, { key: 'fetch15', icon: '🥎', text: '15 pelotas' },
     ...LEVEL_DEFS.map(L => ({ key: 'lvl' + L.id, icon: ['🌲', '⛰️', '💎'][L.id - 1], text: L.name })),
-    ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon, text: t.name })), ...EXTRA_STICKERS];
+    ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon, text: t.name })), ...EXTRA_STICKERS,
+    { key: 'gift7', icon: '🎁', text: 'Siete días seguidos' }, { key: 'photo1', icon: '📸', text: 'Primera foto' }, { key: 'photo10', icon: '🖼️', text: 'Álbum lleno' },
+    { key: 'fiesta', icon: '🎉', text: 'Primera fiesta' }, { key: 'cumple', icon: '🎂', text: 'Cumpleaños' }, { key: 'deco', icon: '🏡', text: 'Casa decorada' },
+    { key: 'adopt', icon: '🐶', text: 'Adoptaron un perrito' }, { key: 'bestfriend', icon: '💖', text: 'Mejor amigo perruno' }, { key: 'contest', icon: '🏆', text: 'Medalla en el concurso' },
+    { key: 'contestgold', icon: '🥇', text: 'Medalla de oro' }, { key: 'huellas', icon: '🦊', text: 'Siguieron las huellas' }, { key: 'bake', icon: '👩‍🍳', text: 'Galletas caseras' }];
 }
 
 // =====================================================================================

@@ -182,12 +182,12 @@ function buildDog(p) {
 }
 // Collar y accesorios (se rehacen solo si cambian)
 function refreshDogExtras(d, p) {
-  const key = `${p.day >= 8}|${p.acc.worn}`;
+  const key = `${p.day >= 8}|${p.acc.worn}|${p.acc.collar || ''}`;
   if (d.key === key) return;
   d.key = key;
   d.extras.clear();
   if (p.day >= 8) {
-    const col = mesh(new THREE.TorusGeometry(0.33, 0.055, 8, 20), '#ff5c5c'); col.position.set(0, 1.03, 0.42); col.rotation.x = 1.25; d.extras.add(col);
+    const col = mesh(new THREE.TorusGeometry(0.33, 0.055, 8, 20), p.acc.collar ? collarColor(p) : '#ff5c5c'); col.position.set(0, 1.03, 0.42); col.rotation.x = 1.25; d.extras.add(col);
     const tag = mesh(G.sph(0.07), '#ffd23f'); tag.position.set(0, 0.86, 0.6); d.extras.add(tag);
   }
   const H = d.head;
@@ -196,6 +196,12 @@ function refreshDogExtras(d, p) {
   if (p.acc.worn === 'lazo') { for (const sx of [-1, 1]) { const b = mesh(G.cone(0.13, 0.26, 10), '#ff79bf'); b.rotation.z = sx * Math.PI / 2; b.position.set(sx * 0.13, 0.45, 0); add(b); } add(at(mesh(G.sph(0.07), '#e0489a'), 0, 0.45, 0)); }
   if (p.acc.worn === 'gorro') { const g = mesh(G.cone(0.32, 0.5, 14), '#ff6b6b'); g.position.set(0, 0.55, -0.02); add(g); const r = mesh(new THREE.TorusGeometry(0.31, 0.07, 8, 18), '#ffffff'); r.rotation.x = Math.PI / 2; r.position.set(0, 0.32, -0.02); add(r); const pm = mesh(G.sph(0.09), '#ffffff'); pm.position.set(0, 0.82, -0.02); add(pm); }
   if (p.acc.worn === 'gafas') { for (const sx of [-1, 1]) { const l = mesh(new THREE.TorusGeometry(0.1, 0.025, 6, 16), '#222222'); l.position.set(sx * 0.17, 0.08, 0.42); add(l); const gl = mesh(G.cyl(0.09, 0.09, 0.02), '#333344'); gl.rotation.x = Math.PI / 2; gl.position.set(sx * 0.17, 0.08, 0.43); add(gl); } }
+  if (p.acc.worn === 'flor') { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; add(at(mesh(G.sph(0.07, 8, 6), '#ff79bf'), 0.3 + Math.cos(a) * 0.08, 0.36 + Math.sin(a) * 0.08, 0.05)); } add(at(mesh(G.sph(0.06, 8, 6), '#ffd23f'), 0.3, 0.36, 0.08)); }
+  if (p.acc.worn === 'corona') { const c = mesh(G.cyl(0.22, 0.2, 0.14, 10, 1), '#f8d030'); c.position.set(0, 0.46, -0.02); add(c); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; add(at(mesh(G.cone(0.05, 0.14, 5), '#f8d030'), Math.cos(a) * 0.19, 0.58, Math.sin(a) * 0.19 - 0.02)); } add(at(mesh(G.sph(0.05, 8, 6), '#e03c3c'), 0, 0.47, 0.2)); }
+  if (p.acc.worn === 'reno') { for (const sx of [-1, 1]) { const a = mesh(G.cyl(0.03, 0.04, 0.4, 6), '#8a5a2a'); a.position.set(sx * 0.16, 0.55, -0.05); a.rotation.z = -sx * 0.4; add(a); const b = mesh(G.cyl(0.025, 0.03, 0.2, 6), '#8a5a2a'); b.position.set(sx * 0.3, 0.66, -0.05); b.rotation.z = -sx * 1.1; add(b); } add(at(mesh(G.sph(0.07, 8, 6), '#ff3030'), 0, -0.02, 0.55)); }
+  if (p.acc.worn === 'calabaza') { const c = mesh(G.sph(0.24, 12, 10), '#ff8c1a'); c.scale.set(1.1, 0.7, 1.1); c.position.set(0, 0.42, -0.02); add(c); add(at(mesh(G.cyl(0.03, 0.04, 0.12, 6), '#3c8c3c'), 0, 0.6, -0.02)); }
+  if (p.acc.worn === 'fiesta') { const c = mesh(G.cone(0.17, 0.42, 12), '#6fc2ff'); c.position.set(0.05, 0.6, -0.02); c.rotation.z = -0.2; add(c); add(at(mesh(G.sph(0.06, 8, 6), '#ffd23f'), 0.1, 0.82, -0.02)); }
+  if (p.acc.worn === 'capa') { const c = mesh(G.box(0.7, 0.05, 0.9), '#e03030'); c.position.set(0, 1.12, -0.25); c.rotation.x = -0.15; c.userData.acc = true; d.extras.add(c); }
   if (p.acc.worn === 'panuelo') { const pn = mesh(G.cone(0.3, 0.35, 3), '#4f7cff'); pn.rotation.x = Math.PI; pn.position.set(0, 0.9, 0.5); d.extras.add(pn); }
 }
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -792,6 +798,18 @@ function buildHome() {
   const pot = mesh(G.cyl(0.35, 0.28, 0.6, 14), '#ff9f43'); pot.position.set(5.2, 0.3, 0.8); home.add(pot);
   for (let i = 0; i < 3; i++) { const lf = mesh(G.sph(0.35, 10, 8), '#5cbf5a'); lf.position.set(5.2 + Math.cos(i * 2) * 0.2, 0.9 + i * 0.15, 0.8 + Math.sin(i * 2) * 0.2); home.add(lf); }
 }
+// Muebles comprados (los mismos que en el 2D: ../js/fun.js)
+const decoGroup = new THREE.Group();
+function refreshDeco3(p) {
+  decoGroup.clear(); if (decoGroup.parent !== home) home.add(decoGroup);
+  const cama = decoOn(p, 'cama'), alf = decoOn(p, 'alfombra');
+  if (cama) { const b = new THREE.Group(); b.add(at(mesh(G.cyl(1.25, 1.35, 0.42, 24), cama.color), 0, 0.21, 0)); b.add(at(mesh(new THREE.TorusGeometry(1.2, 0.24, 10, 26), cama.id === 'cama-real' ? '#f8d030' : '#e8f4ff'), 0, 0.45, 0)); b.children[1].rotation.x = Math.PI / 2; b.position.set(-3.6, 0.01, -2.6); decoGroup.add(b); }
+  if (alf) { const r = mesh(G.cyl(2.25, 2.25, 0.05, 32), alf.color, { cast: false, recv: true }); r.position.set(0, 0.03, 0.5); decoGroup.add(r); }
+  const wall = (slot, x, y, size) => { const it = decoOn(p, slot); if (!it) return; const sb = signBoard(it.icon, size); sb.position.set(x, y, -4.32); decoGroup.add(sb); };
+  wall('cuadro', -0.6, 3.1, 1.1); wall('lampara', 4.6, 3.6, 0.8);
+  const floor = (slot, x, z, size) => { const it = decoOn(p, slot); if (!it) return; const s2 = sprite(it.icon, size); s2.position.set(x, size / 2, z); decoGroup.add(s2); };
+  floor('planta', -5.2, -3.6, 1.2); floor('juguetes', 3.2, -1.6, 1);
+}
 const HOME_SPOT = { food: [0.6, -2.0, Math.PI], water: [2.0, -2.0, Math.PI], bed: [-3.6, -2.6, 0.6], tub: [-4.3, 1.6, 0.8], center: [0, 0.6, 0.3], toys: [3.6, -2.2, Math.PI * 0.8] };
 function refreshMess(p) {
   messMeshes.forEach(m => home.remove(m)); messMeshes = [];
@@ -855,6 +873,9 @@ function startGame(pr) {
   refreshHUD();
   setDayLight(p);
   speak(`¡Hola ${pr.name}! ¡Vamos a pasear!`);
+  setPetName(p); setFx(weatherFx());   // nombre, clima y fiestas (../js/fun.js)
+  buddyS.on = false;
+  setTimeout(() => showPendingFun3(), 2600);
   setTimeout(() => dogSound('happy', stageOf(p.day).size), 2200);
 }
 
@@ -875,9 +896,9 @@ const MOOD_FACE = { feliz: '😄', normal: '🙂', triste: '😢', enferma: '�
 function refreshHUD() {
   if (!current) return;
   const p = current.pet;
-  const bars = STAT_INFO.map(i => { const v = Math.round(p.stats[i.key]); return `<div class="hb ${v < 25 ? 'low' : ''}" title="${i.label}"><span>${i.icon}</span><i><b style="width:${v}%;background:${i.color}"></b></i></div>`; }).join('');
+  const bars = STAT_INFO.map(i => { const v = Math.round(p.stats[i.key]); return `<div class="hb ${v < 25 ? 'low' : ''}" title="${i.label}" data-say="${i.label}"><span>${i.icon}</span><i><b style="width:${v}%;background:${i.color}"></b></i></div>`; }).join('');
   $('#hud').innerHTML = `<div class="hud-left"><a class="hbtn" href="../index.html" aria-label="Volver al juego 2D">🕹️</a><span class="face">${MOOD_FACE[moodOf(p)]}</span></div>
-    <div class="hud-bars">${bars}</div><div class="hud-right"><span class="chip">🦴 ${p.bones}</span><span class="chip">${STAGE_ICON3[stageOf(p.day).id]} ${p.day}</span><span class="chip">🔥 ${p.streak}</span><button class="hbtn" id="map3" aria-label="Mapa">🗺️</button><button class="hbtn" id="diary3" aria-label="Diario">📖</button><button class="hbtn" id="music" aria-label="Música">${Music.isOn() ? '🎵' : '🔕'}</button><button class="hbtn" id="mute" aria-label="Sonido">${muted ? '🔇' : '🔊'}</button></div>`;
+    <div class="hud-bars">${bars}</div><div class="hud-right"><span class="chip" data-say="Tienes ${p.bones} huesos">🦴 ${p.bones}</span><span class="chip" data-say="Semana ${p.day}">${STAGE_ICON3[stageOf(p.day).id]} ${p.day}</span><span class="chip" data-say="Racha de ${p.streak} días">🔥 ${p.streak}</span>${weatherChipHTML()}<button class="hbtn" id="photo3" aria-label="Sacar una foto">📷</button><button class="hbtn" id="map3" aria-label="Mapa">🗺️</button><button class="hbtn" id="diary3" aria-label="Diario">📖</button><button class="hbtn" id="music" aria-label="Música">${Music.isOn() ? '🎵' : '🔕'}</button><button class="hbtn" id="mute" aria-label="Sonido">${muted ? '🔇' : '🔊'}</button></div>`;
   refreshGuide3();
 }
 const STAGE_ICON3 = { recien: '🐣', bebe: '🍼', cachorra: '🐶', joven: '🐕', adulta: '🎂' };
@@ -1023,7 +1044,9 @@ function enterHomeNow() {
     luna.x = 0; luna.z = 2.8; luna.ry = Math.PI; luna.path = null;
     kidS.x = 2.4; kidS.z = 3.4; kidS.ry = Math.PI;
     if (current.pet.asleep) { luna.x = HOME_SPOT.bed[0]; luna.z = HOME_SPOT.bed[1]; }
-    refreshMess(current.pet);
+    refreshMess(current.pet); refreshDeco3(current.pet);
+    if (decoBonus(current.pet)) { pop('🏡', '+💖'); refreshHUD(); }
+    if (current.pet.buddy) { moveObj(buddy3(), home); buddyS.x = -1.5; buddyS.z = 2; }
     homeActions();
     $('#actions').hidden = false;
     $('#prompt').hidden = true;
@@ -1166,10 +1189,10 @@ function buildShop() {
 function shopActions() {
   if (where !== 'room' || roomId !== 'tienda') return;   // una acción que termina tarde no debe pintar botones en otro lugar
   const p = current.pet;
-  renderActions(SHOP.map(it => {
+  renderActions(SHOP_SALE.map(it => {
     const owned = (it.acc && p.acc.owned.includes(it.id)) || (it.once && p.items[it.id]);
     return ['buy:' + it.id, it.icon, it.short, owned ? '✔' : p.bones < it.price ? '🦴' : '', `🦴${it.price}`];
-  }).concat([['exit', '🚪', 'Salir', '']]));
+  }).concat([['homeshop', '🏡', 'Casa', '', '🎨'], ['exit', '🚪', 'Salir', '']]));
   setInfo(`<div class="wallet">🦴 ${p.bones}</div>`);
 }
 function shopAct(itemId) {
@@ -1204,7 +1227,8 @@ function schoolActions() {
   if (where !== 'room' || roomId !== 'escuela') return;   // una acción que termina tarde no debe pintar botones en otro lugar
   const p = current.pet, e = today(p);
   const busyB = e.sessions >= MAX_SESSIONS ? '⏳' : playBlock(p);
-  renderActions(TRICKS.map(t => ['trick:' + t.id, t.icon, t.short, p.day < t.min ? '🔒' : busyB, starBar3(p.tricks[t.id] || 0)]).concat([['exit', '🚪', 'Salir', '']]));
+  const cs = contestState(p);
+  renderActions(TRICKS.map(t => ['trick:' + t.id, t.icon, t.short, p.day < t.min ? '🔒' : busyB, starBar3(p.tricks[t.id] || 0)]).concat([['trick:contest', '🏆', 'Concurso', cs ? cs[0] : playBlock(p), '🥇🦴'], ['exit', '🚪', 'Salir', '']]));
   setInfo(`<div class="wallet">🎓 ${'●'.repeat(e.sessions)}${'○'.repeat(Math.max(0, MAX_SESSIONS - e.sessions))}</div>`);
 }
 const ARROW_EMO = { up: '⬆️', right: '➡️', down: '⬇️', left: '⬅️' };
@@ -1263,7 +1287,8 @@ function finishTrain3() {
   const after = trainAfter(p, m.t.id, m.ok);
   trainRewards(p, m.t.id, m.ok, after);   // mismas recompensas que el 2D
   saveRoot(); refreshHUD();
-  resultCard3(m.ok, m.ok, `<span>${m.t.icon} ${starBar3(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}`, () => { $('#actions').hidden = false; if (m.home) homeActions(); else schoolActions(); });
+  const isContest = m.t.id === 'contest';
+  resultCard3(m.ok, isContest ? (MEDALS[m.ok] || {}).bones || 0 : m.ok, isContest ? contestExtra(m.ok) : `<span>${m.t.icon} ${starBar3(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}`, () => { $('#actions').hidden = false; if (m.home) homeActions(); else schoolActions(); });
 }
 function resultCard3(stars, bones, extra, cb) {
   const word = ['¡Otra vez!', '¡Bien!', '¡Muy bien!', '¡Genial!'][clamp(stars, 0, 3)];
@@ -1297,6 +1322,7 @@ function roomAct(a) {
   if (a === 'exit') return leaveToTown(roomId);
   if (roomId === 'vet') return vetAct(a);
   if (roomId === 'tienda' && a.startsWith('buy:')) return shopAct(a.slice(4));
+  if (roomId === 'tienda' && a === 'homeshop') return openFun('homeshop', current.pet, funUI3(() => { refreshDogExtras(dog, current.pet); shopActions(); }));
   if (roomId === 'escuela' && a.startsWith('trick:')) return startTrain3(a.slice(6));
 }
 function leaveToTown(fromId) {
@@ -1553,7 +1579,8 @@ function openDiary3() {
   card3(`<div class="result"><h2>📖</h2>
     <div class="weekbox"><span>${STAGE_ICON3[st.id]} ${p.day}</span><span>⚖️ ${fmtWeight(p.weight)}</span><span>🔥 ${p.streak}</span>${p.rpg && p.rpg.met ? `<span>${RANKS[rankOf(p.rpg.xp)]}</span>` : ''}</div>
     <div class="today">${r.map(x => `<span class="tday ${x.have >= x.need ? 'ok' : ''}"><i>${x.icon}</i><b>${x.have >= x.need ? '⭐' : `${Math.min(x.have, x.need)}/${x.need}`}</b></span>`).join('')}</div>
-    <div class="stickers">${all.map(m => got.has(m.key) ? `<button class="stk" data-say="${esc3(m.text)}" aria-label="${esc3(m.text)}">${m.icon}</button>` : '<span class="stk off">❔</span>').join('')}</div>${parentsHTML(p, e, current.name)}</div>`);
+    <div class="diary-tools"><button class="slot" data-album>📸 Álbum</button><button class="slot" data-rename>✏️ ${esc3(petName(p))}</button>${p.buddy ? `<span class="chip">🐶 ${esc3(p.buddy.name)}</span>` : ''}</div>${goalsHTML(p)}
+    <div class="stickers">${all.map(m => got.has(m.key) ? `<button class="stk" data-say="${esc3(m.text)}" aria-label="${esc3(m.text)}">${m.icon}</button>` : '<span class="stk off">❔</span>').join('')}</div>${parentsHTML(p, e, current.name).replace('</details>', remindersHTML() + '</details>')}</div>`);
 }
 
 // ---------- Avisos de Pío en 3D (lugar nuevo, vacuna, enfermedad) ----------
@@ -2166,6 +2193,9 @@ function updateTownDogs3(dt, p, t) {
       dg.ring.position.set(dg.x, 0.05, dg.z);
       dg.ring.material.opacity = dg.growlT > 2.5 ? 0.95 : 0.55 + Math.sin(t * 4) * 0.15;
     }
+    const far = Math.hypot(kidS.x - dg.x, kidS.z - dg.z) > (LITE ? 24 : 34);
+    dg.d.root.visible = !far; if (dg.owner) dg.owner.g.visible = !far; if (dg.leash) dg.leash.visible = !far; if (dg.ring) dg.ring.visible = !far;
+    if (far) { dg.ind.visible = false; continue; }
     const mode = dg.happyT > 0 ? 'happy' : dg.sp > 0.2 ? 'walk' : (D.mood === 'shy' && !dg.owner ? 'sit' : 'idle');
     animateDog(dg.d, dt, { mode, speed: dg.sp, sad: D.mood === 'grumpy' && dg.growlT > 2.8, mood: D.mood === 'friendly' ? 'feliz' : 'normal' });
     dg.d.root.position.set(dg.x, 0, dg.z); dg.d.root.rotation.y = dg.ry;
@@ -2182,7 +2212,7 @@ function updateTownDogs3(dt, p, t) {
       animateNPC(dg.owner.g, dt * (Math.hypot(kidS.x - dg.owner.x, kidS.z - dg.owner.z) < 2.2 ? 1 : 0.3));
     }
     const close = Math.hypot(kidS.x - dg.x, kidS.z - dg.z) < 3.2;   // al acercarse: nombre y carácter
-    if (close && !dg.near) toast(dogLabel(D));
+    if (close && !dg.near) toast(dogLabel(D, p));
     dg.near = close;
   }
 }
@@ -2212,7 +2242,7 @@ function greetDog3(dg) {
     dogSound('happy', D.size > 1 ? 4 : D.size > 0.7 ? 3 : 1, 0.7);
     if (lunaThere) { luna.mode = 'happy'; luna.modeT = 2; burst(town, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 2, 0.5); }
   }
-  pop(r.icon, r.sub); speak(r.say);
+  pop(r.friend && r.friend.up ? '💚' : r.icon, r.friend && r.friend.gift ? '🦴 +5' : r.sub); speak(r.say);
   saveRoot(); refreshHUD();
   if (r.quest) setTimeout(() => showQuest3(r.quest), 1200);
 }
@@ -2264,6 +2294,7 @@ function spotAct3(a) {
   if (r.special === 'quiz') return openQuiz3(r.q);
   if (r.special === 'talk' || r.special === 'bag') { if (ranger) ranger.userData.wave = 2; speak(r.say); card3(r.html); spawnValley3(p); spotActions3(); return; }
   if (r.special === 'cookies') { pop(r.icon, r.sub); speak(r.say); sfx('coin'); spotActions3(); return; }
+  if (r.special === 'adopt' || r.special === 'bake') return openFun(r.special, p, funUI3(spotActions3));
   if (r.special === 'treatShelter') {
     shelterDogs.forEach(s => { s.happyT = 2.5; });
     burst(town, '🍪', new THREE.Vector3(shelterPen.x, 1.2, shelterPen.z), 4, 0.5);
@@ -2373,8 +2404,10 @@ function spawnValley3(p) {
   for (let i = 0; i < 7; i++) spots['s' + i] = valleySpot3(r, i >= 5);
   for (let i = 0; i < 4; i++) spots['f' + i] = valleySpot3(r, i >= 2);
   const keySpot = valleySpot3(r, true);
+  const trail = [valleySpot3(r, false)];   // rastro de huellas: cada una cerca de la anterior
+  for (let i = 1; i < TRACK_N; i++) { let q = null; for (let k = 0; k < 40 && !q; k++) { const c = valleySpot3(r, r() < 0.4), d = Math.hypot(c[0] - trail[i - 1][0], c[1] - trail[i - 1][1]); if (d > 4 && d < 10) q = c; } trail.push(q || valleySpot3(r, false)); }
   for (const [id, item] of valleyItemList(p)) {
-    const [x, z] = item === 'cristal' ? [valleyPOI.cave[0], valleyPOI.cave[1] - 1.2] : item === 'llave' ? keySpot : spots[id];
+    const [x, z] = item === 'cristal' ? [valleyPOI.cave[0], valleyPOI.cave[1] - 1.2] : item === 'llave' ? keySpot : item === 'huella' ? trail[+id.slice(1)] : spots[id];
     const m = sprite(VALLEY_ITEMS[item].icon, item === 'llave' ? 1 : 0.85);
     m.position.set(x, 0.6, z); town.add(m);
     valleyItems.push({ id, item, m, x, z });
@@ -2408,9 +2441,10 @@ function updateValley3(dt, p, t) {
       town.remove(v.m); valleyItems.splice(i, 1);
       burst(town, VALLEY_ITEMS[v.item].icon, v.m.position, 3, 0.5); sfx('coin');
       const r = pickValleyItem(p, v.id, v.item);
-      if (r.say) { pop(r.icon, r.sub); speak(r.say); }
+      if (r.say || r.sub) { pop(r.icon, r.sub); if (r.say) speak(r.say); }
       if (lunaOut) { luna.mode = 'happy'; luna.modeT = 0.8; }
       saveRoot(); refreshHUD();
+      if (v.item === 'huella') spawnValley3(p);   // aparece la siguiente huella
       showQuest3(r.quest);
     }
   }
@@ -2994,6 +3028,37 @@ function askDelete3(id) {
   card3(`<div class="result"><h2>🗑️ ¿Borrar?</h2><p class="fact">${esc3(msg)}</p><div class="quiz"><button class="go danger" data-del3="yes">🗑️ Borrar</button><button class="go" data-del3="no">✖</button></div></div>`);
 }
 
+// ---------- Mejoras comunes (../js/fun.js): ventana común, foto, perrito adoptado ----------
+function funUI3(after) { return { prId: current.id, save: saveRoot, refresh: () => { refreshHUD(); refreshDogExtras(dog, current.pet); if (where === 'home') refreshDeco3(current.pet); if (after) after(); }, onClose: () => refreshGuide3() }; }
+function showPendingFun3() { if (!current || !$('#card3').hidden || mini || forest) return false; return showPendingFun(current.pet, funUI3()); }
+function takePhoto3() {
+  if (!current) return;
+  renderer.render(scene, camera);
+  const n = takePhoto(renderer.domElement, current.id, current.pet, where === 'room' || where === 'spot' ? (PLACE_UI_ALL[roomId || spotId] || {}).name || '' : where === 'home' ? 'Casa' : '');
+  sfx('coin'); pop('📸', `${n}/12`); speak('¡Foto guardada en el álbum!');
+  const f = document.createElement('div'); f.className = 'flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 400);
+  saveRoot();
+}
+let buddyD = null;
+const buddyS = { x: 0, z: 0, ry: 0, on: false, sp: 0, look: -1 };
+function buddy3() {
+  const p = current.pet;
+  if (!buddyD || buddyS.look !== p.buddy.look) { if (buddyD && buddyD.root.parent) buddyD.root.parent.remove(buddyD.root); buddyD = buildDog({ look: buddyLook(p), ears: p.buddy.look === 1 ? 'up' : null, day: 10, acc: { worn: null, collar: p.acc.collar } }); buddyD.root.scale.setScalar(0.6); buddyS.look = p.buddy.look; }
+  return buddyD.root;
+}
+function updateBuddy3(dt, p) {
+  if (!p.buddy) return;
+  const root = buddy3();
+  if (dog.root.parent !== scene || p.asleep || hide3) { if (root.parent && root.parent !== home) root.parent.remove(root); if (where !== 'home') { buddyS.on = false; return; } }
+  if (root.parent !== scene) { moveObj(root, scene); buddyS.x = luna.x - 1; buddyS.z = luna.z + 0.8; }
+  const tx = luna.x - Math.sin(luna.ry) * 1.1 + Math.cos(luna.ry) * 0.7, tz = luna.z - Math.cos(luna.ry) * 1.1 - Math.sin(luna.ry) * 0.7;
+  const dx = tx - buddyS.x, dz = tz - buddyS.z, d = Math.hypot(dx, dz);
+  buddyS.sp = 0;
+  if (d > 0.25) { const s = Math.min(d, (d > 3 ? 8 : 4) * dt); buddyS.x += dx / d * s; buddyS.z += dz / d * s; buddyS.sp = s / dt; const a = Math.atan2(dx, dz); buddyS.ry += Math.atan2(Math.sin(a - buddyS.ry), Math.cos(a - buddyS.ry)) * (1 - Math.exp(-10 * dt)); }
+  root.position.set(buddyS.x, 0, buddyS.z); root.rotation.y = buddyS.ry;
+  animateDog(buddyD, dt, { mode: buddyS.sp > 0.2 ? 'walk' : luna.mode === 'happy' ? 'happy' : 'idle', speed: buddyS.sp, mood: 'feliz' });
+}
+
 // ====================== Bucle ======================
 const timer = new THREE.Timer();
 timer.connect(document);
@@ -3031,7 +3096,8 @@ function update(dt) {
     refreshHUD(); setDayLight(p);
     if (where === 'home') { homeActions(); refreshMess(p); }
     if (where === 'room' && !train3) refreshRoom();
-    guideCheck3();
+    weatherTick(p); setFx(weatherFx());
+    if (!showPendingFun3()) guideCheck3();
   }
   if (saveAcc > 15) { saveAcc = 0; saveRoot(); }
 
@@ -3048,6 +3114,7 @@ function update(dt) {
 
   // movimiento: afuera camina el avatar y Luna lo sigue; adentro se mueve a Luna
   let mx = (input.right - input.left) + input.jx, mz = (input.down - input.up) + input.jz;
+  if (XM.open) mx = mz = 0;   // ventana común abierta: el mundo espera
   const len = Math.hypot(mx, mz);
   if (len > 1) { mx /= len; mz /= len; }
   const outdoor = OUTDOOR.has(where);
@@ -3081,6 +3148,7 @@ function update(dt) {
       if (walkAcc >= 1) {
         const e = today(p), n = Math.floor(walkAcc); walkAcc -= n;
         guideEvent3('walk');
+        { const rs = rainWalkStep(p); if (rs) toast(rs); }   // la lluvia moja (../js/fun.js)
         if (p.day >= 3) { e.walkTiles += n; if (e.walkTiles >= WALK_GOAL && !e.walk) { e.walk = 1; p.bones += 2; addEvent(p, '🗺️', '¡Exploración del día completada!'); pop('🗺️', '⭐'); speak('¡Paseo completado!'); refreshHUD(); } }
       }
     }
@@ -3113,6 +3181,7 @@ function update(dt) {
   kid.leash = leashOn;
   animateKid(kid, dt, kidMoving, kidSpeed);
   drawLeash3(scene, leashOn);
+  updateBuddy3(dt, p);
   if (p.asleep && dog.root.parent === scene && Math.random() < dt * 0.8) burst(scene, '💤', new THREE.Vector3(luna.x, 1.2, luna.z), 1, 0.5);
 
   guideAcc += dt;
@@ -3218,6 +3287,7 @@ function updateHomeCam(dt) {
 // ====================== Entrada ======================
 const KEYS = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 W.addEventListener('keydown', e => {
+  if (XM.open) return;
   if (e.target.tagName === 'INPUT') return;
   if (!$('#card3').hidden && ['Space', 'Enter', 'Escape'].includes(e.code)) { e.preventDefault(); closeCard3(); return; }
   if (mini && !mini.over && ['Escape', 'KeyX', 'Backspace'].includes(e.code)) { e.preventDefault(); mini.quit(); return; }
@@ -3281,6 +3351,9 @@ document.addEventListener('click', e => {
   if (b.dataset.act === 'help') { placeHelp3(); return; }
   if (b.id === 'diary3') { openDiary3(); return; }
   if (b.id === 'map3') { openMap3(); return; }
+  if (b.id === 'photo3') { takePhoto3(); return; }
+  if (b.dataset.album !== undefined) { closeCard3(); return openFun('album', current.pet, funUI3()); }
+  if (b.dataset.rename !== undefined) { closeCard3(); return openFun('rename', current.pet, funUI3()); }
   if (b.dataset.say !== undefined && b.classList.contains('stk')) { speak(b.dataset.say); return; }
   if (b.dataset.imp) { $('#card3').hidden = true; if (b.dataset.imp === 'yes' && importPending3) { importPending3.profiles.forEach(pr => normalizePet(pr.pet)); W.root = importPending3; W.root.activeId = null; saveRoot(); showPicker(); pop('💾', '✔'); } importPending3 = null; return; }
   if (b.dataset.del3) { $('#card3').hidden = true; if (b.dataset.del3 === 'yes' && delPending3) { W.root.profiles = W.root.profiles.filter(x => x.id !== delPending3); saveRoot(); showPicker(); } delPending3 = null; return; }
@@ -3313,6 +3386,7 @@ $('#new-form').addEventListener('submit', e => {
   const coat = document.querySelector('[data-coat].sel')?.dataset.coat || 'dorado';
   const avatar = document.querySelector('[data-avatar].sel')?.dataset.avatar || '🧒';
   const pr = { id: uid(), name, avatar, createdAt: Date.now(), pet: newPet(coat) };
+  pr.pet.name = ($('#new-petname').value || '').trim().slice(0, 14) || 'Luna';
   W.root.profiles.push(pr); saveRoot(); startGame(pr);
 });
 // la música arranca con el primer toque o tecla (política de autoplay)
@@ -3340,6 +3414,7 @@ function showPicker() {
 }
 const resume = W.root.activeId && W.root.profiles.find(x => x.id === W.root.activeId);
 if (resume) Cloud.refresh(resume).finally(() => startGame(resume)); else showPicker();
+registerSW('../');   // app instalable y recordatorios (../js/fun.js)
 // vista previa mientras está el selector
 (function idle() {
   if (current) return;

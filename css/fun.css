@@ -1,0 +1,70 @@
+/* Estilos comunes al 2D y al 3D: ventana común, clima, fiestas, regalo, álbum, galletas, casa, metas. */
+.xmodal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 12px; background: rgba(74, 42, 90, .38); }
+.xmodal[hidden] { display: none; }
+.xbox { position: relative; width: min(100%, 520px); max-height: 92vh; overflow: auto; background: #fffafd; border-radius: 26px; padding: 18px 16px 16px; text-align: center;
+  box-shadow: 0 0 0 5px #e2c8ee, 0 10px 0 5px #b06ad0; font-family: "Pixelify Sans", system-ui, sans-serif; font-size: 18px; color: #4a2a5a; }
+.xbox h2 { font-size: 30px; margin: 4px 0 10px; } .xbox h3 { font-size: 22px; margin: 12px 0 6px; }
+.xclose { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #f4e6fa; font-size: 20px; cursor: pointer; }
+.xbtn { border: 0; border-radius: 99px; background: #ffd23f; box-shadow: 0 4px 0 #d8a020, 0 0 0 3px #c08a10; font: inherit; font-size: 20px; font-weight: 700; padding: 10px 18px; margin: 6px; cursor: pointer; color: #3a2a10; }
+.xbtn.big { font-size: 26px; padding: 12px 26px; }
+.xbtn:active, .xopt:active { transform: translateY(3px); }
+.xgrid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 8px 0; }
+.xopt { border: 0; border-radius: 18px; background: #fff; box-shadow: 0 0 0 3px #e2c8ee, 0 4px 0 3px #c8a8d8; width: 76px; min-height: 76px; display: grid; place-items: center; gap: 2px; padding: 6px; font: inherit; cursor: pointer; }
+.xopt span { font-size: 34px; line-height: 1; }
+.xopt small { font-size: 14px; font-weight: 700; }
+.xopt.on { box-shadow: 0 0 0 4px #ffb400, 0 4px 0 4px #d89000; background: #fff7d8; }
+.xopt[aria-disabled="true"] { opacity: .5; }
+.xopt.col span { width: 40px; height: 40px; border-radius: 50%; display: block; border: 3px solid #fff; box-shadow: 0 0 0 2px #c8a8d8; }
+.xgrid.big .xopt { width: 104px; min-height: 104px; }
+.dogpick span { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-size: 40px; }
+.xinput { font: inherit; font-size: 24px; text-align: center; border: 3px solid #e2c8ee; border-radius: 16px; padding: 8px 12px; width: min(100%, 280px); margin: 6px 0; }
+.xbox .fact { font-size: 19px; font-weight: 600; line-height: 1.3; margin: 10px auto; max-width: 34ch; }
+.xbox .gains { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; font-size: 26px; margin: 8px 0; }
+.xbox .gains span { background: #f6e4ff; border-radius: 99px; padding: 4px 14px; }
+.xbox .stars { font-size: 44px; } .xbox .stars .dim { filter: grayscale(1); opacity: .3; }
+.party-row { font-size: 44px; letter-spacing: 6px; animation: partyhop 1s ease-in-out infinite; }
+@keyframes partyhop { 50% { transform: translateY(-8px) rotate(-3deg); } }
+/* calendario de regalos */
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 10px 0; }
+.cd { border-radius: 14px; background: #f4eef6; padding: 6px 2px; display: grid; gap: 2px; box-shadow: 0 0 0 2px #e8dcee; }
+.cd b { font-size: 13px; } .cd i { font-style: normal; font-size: 24px; }
+.cd.got { background: #d8f5e4; box-shadow: 0 0 0 2px #7fd6a0; } .cd.now { background: #fff1b8; box-shadow: 0 0 0 3px #ffb400; animation: partyhop 1s infinite; }
+/* álbum */
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ph { border: 0; padding: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 3px #e2c8ee; cursor: pointer; background: #fff; }
+.ph img { display: block; width: 100%; height: auto; }
+.big-photo { width: 100%; border-radius: 12px; box-shadow: 0 0 0 4px #e2c8ee; }
+.row-x { display: flex; justify-content: center; gap: 8px; }
+/* galletas */
+.recipe { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 40px; }
+.recipe span { padding: 4px 8px; border-radius: 14px; background: #f4eef6; } .recipe span.done { background: #d8f5e4; } .recipe span.now { background: #fff1b8; box-shadow: 0 0 0 3px #ffb400; }
+.recipe i { font-style: normal; font-size: 20px; color: #b06ad0; }
+.bowl { font-size: 56px; margin: 4px 0; }
+.oven { position: relative; height: 28px; border-radius: 99px; background: #f4e6fa; overflow: hidden; margin: 14px 8px; box-shadow: inset 0 0 0 3px #e2c8ee; }
+.oven b { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #ffd23f, #ff8c1a); }
+.oven i { position: absolute; left: 60%; width: 25%; top: 0; bottom: 0; background: rgba(60, 200, 100, .45); box-shadow: inset 0 0 0 3px #2fa860; }
+/* casa decorada */
+.room2 { position: relative; height: 120px; border-radius: 18px; overflow: hidden; margin: 6px 0 10px; background: linear-gradient(#ffd1e6 0 62%, #e7b98a 62%); box-shadow: 0 0 0 3px #e2c8ee; }
+.room2 span { position: absolute; font-size: 34px; line-height: 1; }
+.r-cuadro { left: 18%; top: 12%; } .r-lampara { left: 46%; top: 6%; } .r-planta { right: 6%; top: 34%; } .r-cama { left: 8%; bottom: 8%; font-size: 44px !important; }
+.r-alf { left: 34%; bottom: 8%; width: 30%; height: 16%; border-radius: 50%; } .r-jug { left: 70%; bottom: 10%; }
+/* metas */
+.goals { display: flex; align-items: center; gap: 8px; justify-content: center; font-weight: 700; margin: 8px 0; cursor: pointer; }
+.gbar { flex: 1; max-width: 220px; height: 14px; border-radius: 99px; background: #f0e0f8; overflow: hidden; }
+.gbar b { display: block; height: 100%; background: linear-gradient(90deg, #ffd23f, #ff9f43); }
+.diary-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+/* clima y fiestas (encima del juego, sin bloquear los toques) */
+.fxlayer { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.fxlayer i { position: absolute; top: -40px; font-style: normal; font-size: 22px; animation: fxfall linear infinite; }
+.fx-lluvia i { width: 2px; height: 22px; background: linear-gradient(transparent, rgba(120, 170, 255, .85)); font-size: 0; animation-name: fxrain; }
+.fx-nieve i { color: #fff; text-shadow: 0 0 4px #9cc8ff; font-size: 20px; }
+.fx-fuegos i { animation-name: fxpop; top: auto; bottom: 40%; font-size: 30px; }
+.fx-confeti i { font-size: 20px; }
+@keyframes fxfall { from { transform: translate(0, 0) rotate(0); } to { transform: translate(60px, 110vh) rotate(360deg); } }
+@keyframes fxrain { from { transform: translate(0, 0); } to { transform: translate(-30px, 110vh); } }
+@keyframes fxpop { 0% { transform: scale(.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-40vh) scale(1.6); opacity: 0; } }
+body.in-mg .fxlayer { display: none; }
+@media (prefers-reduced-motion: reduce) { .fxlayer { display: none; } .party-row, .cd.now { animation: none; } }
+/* destello al sacar una foto */
+.flash { position: fixed; inset: 0; z-index: 50; background: #fff; pointer-events: none; animation: flash .4s ease-out forwards; }
+@keyframes flash { from { opacity: .9; } to { opacity: 0; } }
