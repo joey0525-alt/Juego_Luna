@@ -34,48 +34,18 @@ function tut(p) {
 }
 
 // ---------- ¿Qué hacer ahora? ----------
-function goalForNeed(n, p) {
-  const d = p.day;
-  switch (n.icon) {
-    case '🤒': return { icon: '🤒', place: 'vet', doId: p.sick && !p.sick.treated ? 'treat-sick' : null, say: p.sick && p.sick.treated ? 'Luna se está curando. Dale comida, agua y que descanse.' : 'Luna está enfermita. Llévala a la veterinaria y toca Curar.' };
-    case '🍖': return { icon: '🍖', place: 'casa', doId: 'eat', say: 'Luna tiene hambre. Ve a la casa y toca Comer.' };
-    case '💧': return d < 4 ? { icon: '🍼', place: 'casa', doId: 'eat', say: 'Luna tiene sed. En casa dale su lechita.' } : { icon: '💧', place: 'casa', doId: 'water', say: 'Luna tiene sed. Ve a la casa y toca Agua.' };
-    case '😴': return { icon: '😴', place: 'casa', doId: 'nap', say: 'Luna tiene sueño. En la casa toca Siesta o Dormir.' };
-    case '🫧': return { icon: '🫧', place: 'casa', doId: d < 8 ? 'wipe' : 'bath', say: 'Luna está sucia. Ve a la casa para limpiarla.' };
-    case '🎾': return d >= 5 ? { icon: '🎾', place: 'parque', doId: 'fetch', say: 'Luna está aburrida. ¡Vamos a jugar a la pelota en el parque!' } : { icon: '🤗', place: 'casa', doId: 'pet', say: 'Luna está aburrida. Ve a la casa y dale mimos.' };
-    case '💩': return { icon: '💩', place: 'casa', doId: 'clean', say: '¡Uy! Luna hizo un accidente en casa. Hay que recogerlo.' };
-    case '💉': return { icon: '💉', place: 'vet', doId: 'vac:', say: 'Hoy le toca una vacuna a Luna. Ve a la veterinaria y toca Vacuna.' };
-    case '💊': return { icon: '🐛', place: 'vet', doId: 'deworm', say: 'Luna necesita su pastilla contra los bichitos. Ve a la veterinaria.' };
-    case '✂️': return { icon: '✂️', place: 'casa', doId: 'nails', say: 'Las uñas de Luna están largas. En casa toca Uñas.' };
-  }
-  return null;
-}
+const goalForNeed = needGoal;   // js/extras.js (igual en el 3D)
 function nextGoal(p) {
   const t = tut(p);
   if (t.step < TUT.length) return { ...TUT[t.step], key: 'tut-' + t.step, tutorial: true };
   if (world.hide) return { icon: '🙈', key: 'hide', say: '¿Dónde está Luna? Camina y mira: si sale fuego, ¡estás muy cerca!', fixed: true };
   if (p.asleep) return softGoal(p, true) || { icon: '💤', key: 'sleep', say: 'Luna está durmiendo. Déjala descansar, o despiértala con A.', fixed: true };
-  const needs = needsOf(p);
-  for (const n of [...needs.filter(x => x.level === 'bad'), ...needs.filter(x => x.level === 'warn')]) {
-    const key = 'need-' + n.icon, fixed = n.level === 'bad';
-    if (!fixed && isSkipped(key)) continue;   // lo urgente no se puede omitir; lo demás sí, con «Ahora no»
-    const g = goalForNeed(n, p);
-    if (g) return { ...g, key, fixed };
-  }
+  const need = careGoal(p, isSkipped);   // mismas prioridades que el 3D (js/extras.js)
+  if (need) return need;
   if (t.focus && !t.visited[t.focus] && !isSkipped('focus-' + t.focus)) { const pl = PLACE_UI[t.focus]; return { icon: pl.icon, place: t.focus, key: 'focus-' + t.focus, say: `¡${pl.name} está abierto! Sigue la flecha.` }; }
-  const { next: r } = routinePending(p);
-  if (r && !isSkipped('routine-' + r.icon)) {
-    const map = {
-      '🍖': { place: 'casa', doId: 'eat', say: 'Hora de comer. Ve a la casa y toca Comer.' },
-      '💧': { place: 'casa', doId: 'water', say: 'Dale agua fresca a Luna en la casa.' },
-      '🎾': p.day >= 5 ? { place: 'parque', doId: 'fetch', say: '¡A jugar! Ve al parque o al bosque.' } : { place: 'casa', doId: 'pet', say: 'Juega con Luna: dale mimos en la casa.' },
-      '🫧': p.day >= 3 ? { place: 'casa', doId: 'brush', say: 'Hora de la limpieza. En casa cepilla a Luna.' } : { place: 'casa', doId: 'wipe', say: 'Hora de la limpieza. En casa limpia a Luna.' },
-      '🎓': { place: 'escuela', doId: 'trick:', say: 'Hoy toca escuela. Ve a la escuela y enséñale un truco.' },
-      '🗺️': { place: null, say: 'Sal a pasear: camina por el mapa con Luna.' },
-    }[r.icon];
-    if (map) return { icon: r.icon, key: 'routine-' + r.icon, ...map };
-  }
-  return softGoal(p, false) || { icon: '🍄', key: 'explore', place: 'aventura', say: '¡Vamos a explorar el Valle Aventura!' };
+  const rt = routineNext(p, isSkipped);
+  if (rt) return rt;
+  return recoverSay(p, softGoal(p, false) || { icon: '🍄', key: 'explore', place: 'aventura', say: '¡Vamos a explorar el Valle Aventura!' });
 }
 
 // Ideas para los tiempos muertos (las mismas que en el 3D, js/extras.js). Siempre hay alguna:

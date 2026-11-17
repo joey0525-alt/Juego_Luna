@@ -300,3 +300,11 @@ body.in-mg .guide { display: none; }
 .guide-skip:active { transform: translateY(3px); }
 .guide-skip[hidden] { display: none; }
 body.in-mg .guide-skip { display: none; }
+
+/* Mapa del pueblo (mismo en 2D y 3D) */
+.map-card h2 { margin: 2px 0 6px; }
+.townmap { width: 100%; height: auto; border-radius: 18px; touch-action: manipulation; cursor: pointer; box-shadow: 0 0 0 3px #e2c8ee; }
+.map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; margin-top: 8px; font-size: 15px; font-weight: 700; }
+.map-legend .lg { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; border: 2px solid #fff; box-shadow: 0 0 0 1px #c8a8d8; }
+.lg.me { background: #ff4fa0; } .lg.ok { background: #22c55e; } .lg.shy { background: #ffc400; } .lg.bad { background: #ff3030; }
+.win-box.map { width: min(100%, 720px); }

@@ -395,3 +395,282 @@ const EXTRA_STICKERS = [
   { key: 'ranger', icon: '🧭', text: 'Conociste al guardabosques' }, { key: 'quest1', icon: '📜', text: 'Primera misión' }, { key: 'mirador', icon: '🗼', text: 'Mirador' },
   { key: 'crystal', icon: '💎', text: 'Cristal de la cueva' }, { key: 'chest', icon: '🗝️', text: 'Cofre antiguo' }, { key: 'questall', icon: '🏆', text: 'Todas las misiones' },
 ];
+
+// =====================================================================================
+// Acciones de los lugares de siempre (Casa, Parque, Lago, Veterinaria): misma lista, mismos
+// motivos para no poder y mismos efectos en 2D y 3D. Cada versión solo cambia cómo se ve.
+// Cada acción: { id, icon, label, fx (iconos), badge, why, count, group }
+// =====================================================================================
+const WHY = {
+  sleep: ['💤', 'Está dormida'], tired: ['😴', 'Está cansada'], sick: ['🤒', 'Está enfermita'], full: ['😋', 'Está llena'], wet: ['💧', 'No tiene sed'],
+  hungry: ['🍖', 'Tiene hambre'], wait: ['⏳', 'Otro día'], money: ['🦴', 'Faltan huesos'], done: ['✔', 'Ya está'], nosleep: ['⚡', 'No tiene sueño'], rested: ['⚡', 'No está cansada'],
+};
+const lockW = w => ['🔒', `Cuando Luna crezca (semana ${w})`];
+function canPlayX(p, minE = 15) {
+  if (p.asleep) return WHY.sleep;
+  if (p.sick && !p.sick.treated) return WHY.sick;
+  if (p.stats.energia < minE) return WHY.tired;
+  if (p.stats.saciedad < 10) return WHY.hungry;
+  return null;
+}
+const starBarX = pct => '★'.repeat(Math.round(pct / 20)) + '☆'.repeat(5 - Math.round(pct / 20));
+function placeActions(id, p) {
+  const s = p.stats, d = p.day, e = today(p), sl = p.asleep ? WHY.sleep : null, out = [];
+  const A = (aid, icon, label, o = {}) => { const no = o.no || null; out.push({ id: aid, icon, label, fx: o.fx || '', badge: no ? no[0] : '', why: no ? no[1] : '', count: o.count, group: o.group || '' }); };
+  if (id === 'casa') {
+    const f = foodFor(d);
+    A('eat', f.icon, 'Comer', { group: '🍽️', fx: '🍖', no: sl || (s.saciedad >= 90 ? WHY.full : null) });
+    if (d >= 4) A('water', '💧', 'Agua', { group: '🍽️', fx: '💧', no: sl || (s.hidratacion >= 92 ? WHY.wet : null) });
+    A('treat', '🍪', 'Premio', { group: '🍽️', fx: '💖', count: p.items.premio, no: sl || (!p.items.premio ? ['🛒', 'Cómpralos en la tienda o la pastelería'] : (e.treats || 0) >= 3 ? WHY.wait : null) });
+    A('pet', '🤗', 'Mimos', { group: '💖', fx: '💖' });
+    A('memory', '🃏', 'Memoria', { group: '💖', fx: '💖🦴', no: sl });
+    if (p.items.mordedor) A('chew', '🧸', 'Mordedor', { group: '💖', fx: '💖', no: d < 3 ? lockW(3) : canPlayX(p) });
+    if (d >= 3) A('potty', '🧻', 'Papel', { group: '💖', fx: starBarX(p.potty), no: sl || (p.potty >= 100 ? WHY.done : null) });
+    if (p.asleep) A('wake', '⏰', 'Despertar', { group: '🌙' }); else A('sleep', '🛏️', 'Dormir', { group: '🌙', fx: '⚡' });
+    A('nap', '😴', 'Siesta', { group: '🌙', fx: '⚡', count: 3 - e.naps, no: sl || (e.naps >= 3 ? WHY.wait : s.energia >= 90 ? WHY.nosleep : null) });
+    if (d < 8) A('wipe', '🧽', 'Limpiar', { group: '🫧', fx: '🫧', no: sl });
+    else A('bath', '🛁', 'Baño', { group: '🫧', fx: '🫧', no: sl || (p.lastDone.bano && d - p.lastDone.bano < 3 ? WHY.wait : null) });
+    if (d >= 3) A('brush', '🖌️', 'Cepillar', { group: '🫧', fx: '🫧💖', no: sl });
+    if (d >= 6) A('nails', '✂️', 'Uñas', { group: '🫧', no: sl || (d - (p.lastDone.unas || 0) < 5 ? WHY.wait : null) });
+    if (d >= 10) A('teeth', '🪥', 'Dientes', { group: '🫧', fx: '🫧', no: sl });
+    if (p.mess) A('clean', '🧻', 'Recoger', { group: '🫧', fx: '💩✖', count: p.mess });
+    if (p.acc.worn) A('wear:', '🚫', 'Quitar', { group: '🎀' });
+    for (const a of p.acc.owned) { const it = SHOP.find(x => x.id === a); A('wear:' + a, it.icon, it.short, { group: '🎀', no: p.acc.worn === a ? WHY.done : null }); }
+    if (!p.acc.owned.length) A('none', '🎀', 'Ropa', { group: '🎀', no: ['🛒', 'Cómprala en la tienda'] });
+  }
+  if (id === 'parque') {
+    A('fetch', '🎾', 'Pelota', { fx: '🦴💖', no: d < 5 ? lockW(5) : canPlayX(p) });
+    A('kick', '⚽', 'Patear', { fx: '💖', no: canPlayX(p) });
+    A('agility', '🏃', 'Carrera', { fx: '🦴💖', no: canPlayX(p) });
+    A('hide', '🙈', 'Escondite', { fx: '🦴💖', no: d < 5 ? lockW(5) : canPlayX(p) });
+    A('stroll', '🚶', 'Pasear', { fx: '💖', no: canPlayX(p) });
+    A('bench', '🪑', 'Descansar', { fx: '⚡', no: sl || (s.energia >= 95 ? WHY.rested : null) });
+  }
+  if (id === 'lago') {
+    A('duckfeed', '🌾', 'Dar de comer', { fx: '🦆🦴', no: sl });
+    A('ducks', '🦆', 'Mirar patos', { fx: '💖', no: sl || (e.ducks ? WHY.wait : null) });
+    if (d >= 4) A('fountain', '🚰', 'Beber', { fx: '💧', no: sl || (s.hidratacion >= 92 ? WHY.wet : null) });
+    if (d >= 8) A('splash', '💦', 'Chapotear', { fx: '💖', no: canPlayX(p) });
+  }
+  if (id === 'vet') {
+    const due = VACCINES.find(v => ['disponible', 'atrasada'].includes(vaccineStatus(p, v)));
+    if (p.sick && !p.sick.treated) A('treat-sick', '💊', 'Curar', { fx: '🩺' });
+    if (due) A('vac:' + due.id, '💉', 'Vacuna', { fx: '🛡️' }); else A('none', '💉', 'Vacuna', { no: WHY.done });
+    A('deworm', '🐛', 'Pastilla', { fx: '🛡️', no: dewormDue(p) ? null : WHY.done });
+    A('checkup', '🩺', 'Revisar', { fx: '⚖️' });
+  }
+  return out;
+}
+// Efecto de una acción instantánea. Aplica los cambios que no son de ánimo y devuelve
+// { fx, kind, icon, msg, word, anim } (cada versión aplica fx con su animación) o { special } para el resto.
+function placeEffect(cmd, p) {
+  const [k, arg] = cmd.split(':'), d = p.day, e = today(p);
+  switch (k) {
+    case 'eat': { const f = foodFor(d); return { fx: f.fx, kind: 'meal', icon: f.icon, msg: f.msg, word: '¡Ñam ñam!', anim: 'food' }; }
+    case 'water': return { fx: { hidratacion: 40 }, kind: 'water', icon: '💧', msg: 'Luna bebió agua fresca.', word: '¡Glu glu!', anim: 'water' };
+    case 'treat': p.items.premio--; return { fx: { felicidad: 10, saciedad: 5 }, kind: 'treat', icon: '🍪', msg: 'Le diste un premio.', word: '¡Un premio!', anim: 'here' };
+    case 'pet': return { fx: p.asleep ? { felicidad: 4 } : { felicidad: 12, energia: -2 }, kind: 'play', icon: '🤗', msg: 'Mimos y caricias.', word: p.asleep ? '' : '¡Te quiero!', anim: 'here' };
+    case 'chew': return { fx: { felicidad: 18, energia: -8, saciedad: -2 }, kind: 'play', icon: '🧸', msg: 'Jugó con el mordedor.', word: '¡Ñic ñic!', anim: 'toys' };
+    case 'nap': e.naps++; return { fx: { energia: 25 }, kind: null, icon: '😴', msg: 'Durmió una siesta cortita.', word: 'Siesta', anim: 'bed' };
+    case 'wipe': return { fx: { higiene: 20 }, kind: 'care', icon: '🧽', msg: 'La limpiaste con un paño tibio.', word: '¡Limpita!', anim: 'center' };
+    case 'brush': return { fx: { higiene: 10, felicidad: 5 }, kind: 'care', icon: '🖌️', msg: 'Le cepillaste el pelo.', word: '¡Qué suave!', anim: 'center' };
+    case 'nails': p.lastDone.unas = d; return { fx: { felicidad: -3 }, kind: 'care', icon: '✂️', msg: 'Le cortaste las uñas con cuidado.', word: 'Uñas cortas', anim: 'center' };
+    case 'teeth': p.lastDone.dientes = d; return { fx: { higiene: 6, salud: 2 }, kind: 'care', icon: '🪥', msg: 'Le cepillaste los dientes.', word: '¡Dientes limpios!', anim: 'center' };
+    case 'clean': p.mess = 0; return { fx: {}, kind: 'care', icon: '🧻', msg: 'Limpiaste los accidentes.', word: '¡Todo limpio!', anim: 'here' };
+    case 'stroll': e.walk = 1; p.potty = clamp(p.potty + 3, 0, 100); outdoorRisk(p); return { fx: { felicidad: 15, energia: -10, hidratacion: -5 }, kind: 'play', icon: '🚶', msg: 'Paseo tranquilo por el parque.', word: '¡A pasear!', anim: 'stroll' };
+    case 'kick': outdoorRisk(p); return { fx: { felicidad: 16, energia: -9 }, kind: 'play', icon: '⚽', msg: 'Patearon la pelota en el parque.', word: '¡Gol!', anim: 'kick' };
+    case 'bench': return { fx: { energia: 8 }, kind: null, icon: '🪑', msg: 'Descansaron en la banca.', word: 'Descanso', anim: 'bench' };
+    case 'ducks': e.ducks = true; outdoorRisk(p); return { fx: { felicidad: 10 }, kind: 'play', icon: '🦆', msg: 'Miraron a los patos.', word: '¡Cuac cuac!', anim: 'ducks' };
+    case 'fountain': return { fx: { hidratacion: 30 }, kind: 'water', icon: '🚰', msg: 'Bebió del bebedero del lago.', word: '¡Glu glu!', anim: 'fountain' };
+    case 'splash': outdoorRisk(p); return { fx: { felicidad: 18, energia: -10, higiene: -18 }, kind: 'play', icon: '💦', msg: 'Chapoteó en la orilla.', word: '¡Splash!', anim: 'splash' };
+    case 'treat-sick': p.sick.treated = true; p.stats.salud = clamp(p.stats.salud + 10, 0, 100); return { fx: {}, kind: null, icon: '💊', msg: 'La veterinaria le dio tratamiento a Luna.', word: 'Ahora necesita descansar, comer y beber agua', anim: 'vet' };
+    case 'deworm': p.deworm.push(d); return { fx: {}, kind: null, icon: '💊', msg: 'Luna tomó su desparasitante.', word: '¡Pastilla tomada!', anim: 'vet' };
+    case 'vac': {
+      const v = VACCINES.find(x => x.id === arg); p.vaccines[v.id] = d;
+      if (walkUnlocked(p)) addMilestone(p, 'vacunas', '🛡️', 'Luna completó sus vacunas de cachorro.');
+      return { fx: { felicidad: -8 }, kind: null, icon: '💉', msg: `Vacuna aplicada: ${v.name}.`, word: '¡Qué valiente!', anim: 'vet', sad: true };
+    }
+    case 'wear': p.acc.worn = arg || null; return { special: 'wear', icon: arg ? SHOP.find(x => x.id === arg).icon : '🚫', word: arg ? '¡Qué guapa!' : '' };
+  }
+  return { special: k };   // memory, potty, bath, fetch, agility, hide, duckfeed, sleep, wake, checkup, none…
+}
+// Contadores del día según el tipo de acción
+function countKind(p, kind) { const e = today(p); if (kind === 'meal') e.meals++; if (kind === 'water') e.water++; if (kind === 'treat') e.treats = (e.treats || 0) + 1; if (kind === 'play') e.play++; if (kind === 'care') e.care++; }
+
+// ---------- Minijuegos: mismas recompensas ----------
+function fetchOutcome(score) { return { stars: score >= 12 ? 3 : score >= 6 ? 2 : score >= 1 ? 1 : 0, bones: Math.floor(score / 2), extra: `<span>🎾 ${score}</span>` }; }
+function fetchRewards(pp, score) {
+  pp.bones += Math.floor(score / 2); today(pp).play++; markGame(pp, 'fetch');
+  applyFx(pp, { felicidad: clamp(8 + score * 3, 8, 40), energia: -12, saciedad: -5, hidratacion: -8 });
+  addEvent(pp, '🎾', `Jugaron a la pelota en el parque: ¡${score} atrapadas!`);
+  if (score >= 15) addMilestone(pp, 'fetch15', '🥎', '¡Luna atrapó 15 pelotas en una partida!');
+  outdoorRisk(pp);
+}
+function bathOutcome(p, frac) { const champu = p.items.champu > 0, hig = Math.round(25 + 55 * frac); return { stars: frac === 1 ? 3 : frac >= 0.6 ? 2 : frac > 0 ? 1 : 0, bones: 0, extra: `<span>🫧 +${hig}</span>${champu ? '<span>🧴💖</span>' : ''}` }; }
+function bathRewards(pp, frac) {
+  const champu = pp.items.champu > 0, hig = Math.round(25 + 55 * frac);
+  if (champu) pp.items.champu--;
+  today(pp).care++; pp.lastDone.bano = pp.day;
+  applyFx(pp, { higiene: hig, felicidad: champu ? 8 : -3 });
+  addEvent(pp, '🛁', `Baño con ${Math.round(frac * 100)}% de manchas limpias.`);
+  addMilestone(pp, 'bath1', '🛁', 'Primer baño de Luna.');
+}
+const POTTY_TRICK = { id: 'potty', name: 'Hacer sus necesidades en su lugar', short: 'Papel', icon: '🧻', min: 3 };
+const trainTrick = id => (id === 'potty' ? POTTY_TRICK : TRICKS.find(x => x.id === id));
+const trainLevel = (p, id) => (id === 'potty' ? p.potty : (p.tricks[id] || 0));
+const trainAfter = (p, id, ok) => Math.min(100, trainLevel(p, id) + ok * 9 + (ok === 3 ? 6 : 0) + (p.stats.felicidad > 70 ? 4 : 0) + 2);
+function trainRewards(pp, id, ok, after) {
+  const t = trainTrick(id), before = trainLevel(pp, id), e = today(pp);
+  e.sessions++; e.train++;
+  if (id === 'potty') pp.potty = after; else pp.tricks[id] = after;
+  applyFx(pp, { energia: -8, saciedad: -3, felicidad: 4 + ok * 2 });
+  pp.bones += ok;
+  if (after >= 100 && before < 100) addMilestone(pp, id === 'potty' ? 'potty' : 'trick-' + id, '🏆', id === 'potty' ? 'Luna aprendió a hacer sus necesidades en su lugar.' : `Luna aprendió: «${t.name}».`);
+  else addEvent(pp, '🎓', `Practicaron «${t.name}» (${after}%).`);
+}
+
+// ---------- Pío: qué hacer con cada necesidad y con la rutina ----------
+function needGoal(n, p) {
+  const d = p.day;
+  switch (n.icon) {
+    case '🤒': return { icon: '🤒', place: 'vet', doId: p.sick && !p.sick.treated ? 'treat-sick' : null, say: p.sick && p.sick.treated ? 'Luna se está curando. Dale comida, agua y que descanse.' : 'Luna está enfermita. Llévala a la veterinaria y toca Curar.' };
+    case '🍖': return { icon: '🍖', place: 'casa', doId: 'eat', say: 'Luna tiene hambre. Ve a la casa y toca Comer.' };
+    case '💧': return d < 4 ? { icon: '🍼', place: 'casa', doId: 'eat', say: 'Luna tiene sed. En casa dale su lechita.' } : { icon: '💧', place: 'casa', doId: 'water', say: 'Luna tiene sed. Ve a la casa y toca Agua.' };
+    case '😴': return { icon: '😴', place: 'casa', doId: 'nap', say: 'Luna tiene sueño. En la casa toca Siesta o Dormir.' };
+    case '🫧': return { icon: '🫧', place: 'casa', doId: d < 8 ? 'wipe' : (p.lastDone.bano && d - p.lastDone.bano < 3 ? 'brush' : 'bath'), say: 'Luna está sucia. Ve a la casa para limpiarla.' };
+    case '🎾': return d >= 3 ? { icon: '🎾', place: 'parque', doId: d >= 5 ? 'fetch' : 'kick', say: 'Luna está aburrida. ¡Vamos a jugar a la pelota en el parque!' } : { icon: '🤗', place: 'casa', doId: 'pet', say: 'Luna está aburrida. Ve a la casa y dale mimos.' };
+    case '💩': return { icon: '💩', place: 'casa', doId: 'clean', say: '¡Uy! Luna hizo un accidente en casa. Hay que recogerlo.' };
+    case '💉': return { icon: '💉', place: 'vet', doId: 'vac:', say: 'Hoy le toca una vacuna a Luna. Ve a la veterinaria y toca Vacuna.' };
+    case '💊': return { icon: '🐛', place: 'vet', doId: 'deworm', say: 'Luna necesita su pastilla contra los bichitos. Ve a la veterinaria.' };
+    case '✂️': return { icon: '✂️', place: 'casa', doId: 'nails', say: 'Las uñas de Luna están largas. En casa toca Uñas, o llévala a la peluquería canina.' };
+  }
+  return null;
+}
+function routineGoal(r, p) {
+  const m = {
+    '🍖': { place: 'casa', doId: 'eat', say: 'Hora de comer. Ve a la casa y toca Comer.' },
+    '💧': { place: 'casa', doId: 'water', say: 'Dale agua fresca a Luna en la casa.' },
+    '🎾': p.day >= 3 ? { place: 'parque', doId: p.day >= 5 ? 'fetch' : 'kick', say: '¡A jugar! Ve al parque a jugar a la pelota.' } : { place: 'casa', doId: 'pet', say: 'Juega con Luna: dale mimos en la casa.' },
+    '🫧': p.day >= 3 ? { place: 'casa', doId: 'brush', say: 'Hora de la limpieza. En casa cepilla a Luna.' } : { place: 'casa', doId: 'wipe', say: 'Hora de la limpieza. En casa limpia a Luna.' },
+    '🎓': { place: 'escuela', doId: 'trick:', say: 'Hoy toca escuela. Ve a la escuela y enséñale un truco.' },
+    '🗺️': { place: 'parque', doId: 'stroll', say: 'Sal a pasear con Luna: camina por el pueblo o ve al parque y toca Pasear.' },
+  }[r.icon];
+  return m ? { icon: r.icon, key: 'routine-' + r.icon, ...m } : null;
+}
+
+// ---------- Diario: sección para papás y pegatinas ----------
+function parentsHTML(p, e, kidName) {
+  const st = stageOf(p.day);
+  let h = `<details class="parents"><summary>👨‍👩‍👧 Para papás</summary>
+    <p><b>${esc(kidName)}</b> cuida a Luna · semana ${p.day} (${ageText(p.day)}) · ${st.name} · ${fmtWeight(p.weight)} · racha ${p.streak} (mejor ${p.bestStreak}).<br>
+    El juego avanza en tiempo real: 1 día = 1 semana de vida de Luna. Pasos explorados hoy: ${e.walkTiles}/${WALK_GOAL}.</p>${voiceSettingsHTML()}`;
+  const needs = needsOf(p);
+  if (needs.length) h += `<h4>Necesita ahora</h4><ul>${needs.map(n => `<li>${n.icon} ${esc(n.text)}</li>`).join('')}</ul>`;
+  h += `<h4>Crecimiento (kg)</h4>${weightChart(p)}`;
+  h += `<h4>Vacunas y desparasitación</h4><ul>${VACCINES.map(v => `<li>${vaccineStatus(p, v) === 'aplicada' ? '✔' : '·'} ${esc(v.name)} — semanas ${v.day}–${v.to}${p.vaccines[v.id] ? ` (aplicada sem. ${p.vaccines[v.id]})` : ''}</li>`).join('')}
+    <li>Desparasitación: ${p.deworm.length ? `última sem. ${Math.max(...p.deworm)}` : 'ninguna'} · próxima sem. ${nextDeworm(p) || '—'}</li></ul>
+    <p class="small">Calendario orientativo con fines educativos; en la vida real sigan lo que indique su veterinario.</p>`;
+  if (p.rpg && p.rpg.met) h += `<h4>Valle Aventura</h4><p>${RANKS[rankOf(p.rpg.xp)]} · ${p.rpg.quests} misiones · ⭐ ${p.rpg.xp}</p>`;
+  h += `<h4>Registro día a día</h4>`;
+  for (let d = p.day; d >= Math.max(1, p.day - 30); d--) {
+    const L = p.log[d];
+    if (!L) { h += `<details class="day"><summary>Semana ${d} · sin visitas</summary></details>`; continue; }
+    const rr = routineFor(p, d, L), w = d === p.day ? p.weight : L.weight;
+    h += `<details class="day"><summary>${moodEmoji(d === p.day ? p.stats.felicidad : (L.mood ?? 50))} Semana ${d} · ${fmtDate(p.bornAt + (d - 1) * DAY)}${L.done ? ' · ⭐ rutina completa' : ''}${w != null ? ' · ' + fmtWeight(w) : ''}
+      <small>${rr.map(x => `${x.icon} ${x.have}/${x.need}`).join(' · ')}</small></summary>
+      <ul class="tl">${L.events.slice().reverse().map(ev => `<li><time>${fmtTime(ev.t)}</time> ${ev.icon} ${esc(ev.text)}</li>`).join('') || '<li>Sin novedades.</li>'}</ul></details>`;
+  }
+  return h + '</details>';
+}
+function weightChart(p) {
+  const pts = [];
+  for (let d = 1; d <= p.day; d++) { const w = d === p.day ? p.weight : p.log[d]?.weight; if (w != null) pts.push([d, w]); }
+  const maxD = Math.max(p.day + 3, 10), maxW = Math.max(targetWeight(maxD), ...pts.map(x => x[1])) * 1.12;
+  const W = 300, H = 120, pl = 30, pr = 6, pt = 6, pb = 16;
+  const x = d => pl + (d - 1) / (maxD - 1) * (W - pl - pr), y = w => H - pb - w / maxW * (H - pt - pb);
+  const target = Array.from({ length: maxD }, (_, i) => `${x(i + 1).toFixed(1)},${y(targetWeight(i + 1)).toFixed(1)}`).join(' ');
+  const act = pts.map(([d, w]) => `${x(d).toFixed(1)},${y(w).toFixed(1)}`).join(' ');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Peso de Luna por semana">
+    ${[0, .5, 1].map(f => `<line x1="${pl}" x2="${W - pr}" y1="${y(maxW * f)}" y2="${y(maxW * f)}" stroke="#e8d0f0"/><text x="${pl - 3}" y="${y(maxW * f) + 3}" text-anchor="end">${(maxW * f).toFixed(1)}</text>`).join('')}
+    <text x="${pl}" y="${H - 3}">S1</text><text x="${W - pr}" y="${H - 3}" text-anchor="end">S${maxD}</text>
+    <polyline points="${target}" fill="none" stroke="#2a9d94" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <polyline points="${act}" fill="none" stroke="#d0602a" stroke-width="2.5"/></svg>
+    <p class="small"><span style="color:#d0602a">━ Luna</span> · <span style="color:#2a9d94">┅ peso ideal</span></p>`;
+}
+function allStickers() {
+  return [...Object.entries(DAY_MILESTONES).map(([d2, m]) => ({ key: 'day' + d2, icon: m[0], text: m[1] })),
+    { key: 'walk1', icon: '🌳', text: 'Primer paseo' }, { key: 'bath1', icon: '🛁', text: 'Primer baño' }, { key: 'vacunas', icon: '🛡️', text: 'Todas las vacunas' },
+    { key: 'allbones', icon: '🔍', text: 'Todos los huesos del día' }, { key: 'tutorial', icon: '🐦', text: 'Lecciones de Pío' }, { key: 'treasure1', icon: '💰', text: 'Primer tesoro' }, { key: 'squirrel', icon: '🐿️', text: 'Primera ardilla' },
+    { key: 'hide1', icon: '🙈', text: 'Encontraste a Luna' }, { key: 'agility', icon: '🏃', text: 'Carrera perfecta' }, { key: 'ducks10', icon: '🦆', text: 'Muchos patos alimentados' }, { key: 'memory', icon: '🃏', text: 'Memoria perfecta' },
+    { key: 'potty', icon: '🧻', text: 'Aprendió a usar el papel' }, { key: 'fetch15', icon: '🥎', text: '15 pelotas' },
+    ...LEVEL_DEFS.map(L => ({ key: 'lvl' + L.id, icon: ['🌲', '⛰️', '💎'][L.id - 1], text: L.name })),
+    ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon, text: t.name })), ...EXTRA_STICKERS];
+}
+
+// =====================================================================================
+// Mapa del pueblo: el mismo dibujo en 2D y 3D. Cada versión pasa sus coordenadas:
+// data = { b: {x0,y0,x1,y1}, roads: [[x1,y1,x2,y2]], water: [{x,y,rx,ry} | {x0,y0,x1,y1}], zones: [{x0,y0,x1,y1,c}],
+//          places: [{id,x,y}], me: {x,y}, luna: {x,y} | null, dogs: [{x,y,mood}], items: [{x,y,icon}], goal: {x,y} | null, goalPlace }
+// Devuelve las zonas tocables [{id,x,y,r}] en píxeles del lienzo.
+// =====================================================================================
+const PLACE_UI_ALL = {
+  casa: { icon: '🏠', name: 'Casa' }, vet: { icon: '🏥', name: 'Veterinaria' }, tienda: { icon: '🛒', name: 'Tienda' }, escuela: { icon: '🎓', name: 'Escuela', minDay: 8 },
+  bosque: { icon: '🌲', name: 'Bosque', minDay: 3 }, parque: { icon: '🌳', name: 'Parque', minDay: 3 }, lago: { icon: '🦆', name: 'Lago' }, ...SPOT_UI,
+};
+const EMOJI_FONT = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+function drawTownMap(cv, data, p) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height, B = data.b, pad = 22;
+  const s = Math.min((W - pad * 2) / (B.x1 - B.x0), (H - pad * 2) / (B.y1 - B.y0));
+  const ox = (W - (B.x1 - B.x0) * s) / 2, oy = (H - (B.y1 - B.y0) * s) / 2;
+  const X = x => ox + (x - B.x0) * s, Y = y => oy + (y - B.y0) * s;
+  const rr = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+  g.fillStyle = '#d8f0c8'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#9fd47e'; rr(X(B.x0), Y(B.y0), (B.x1 - B.x0) * s, (B.y1 - B.y0) * s, 14); g.fill();
+  for (const z of data.zones || []) { g.fillStyle = z.c; rr(X(z.x0), Y(z.y0), (z.x1 - z.x0) * s, (z.y1 - z.y0) * s, 8); g.fill(); }
+  g.fillStyle = '#6cc8ff';
+  for (const w of data.water || []) { g.beginPath(); if (w.rx) g.ellipse(X(w.x), Y(w.y), w.rx * s, w.ry * s, 0, 0, Math.PI * 2); else g.rect(X(w.x0), Y(w.y0), (w.x1 - w.x0) * s, (w.y1 - w.y0) * s); g.fill(); }
+  g.strokeStyle = '#f6dca8'; g.lineCap = 'round'; g.lineWidth = Math.max(5, Math.min(9, s * 1.3));
+  for (const [a, b, c, d] of data.roads || []) { g.beginPath(); g.moveTo(X(a), Y(b)); g.lineTo(X(c), Y(d)); g.stroke(); }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '13px ' + EMOJI_FONT;
+  for (const it of data.items || []) g.fillText(it.icon, X(it.x), Y(it.y));
+  for (const dg of data.dogs || []) { g.fillStyle = dg.mood === 'grumpy' ? '#ff3030' : dg.mood === 'shy' ? '#ffc400' : '#22c55e'; g.beginPath(); g.arc(X(dg.x), Y(dg.y), 4.5, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.stroke(); }
+  const hits = [];
+  for (const pl of data.places) {
+    const ui = PLACE_UI_ALL[pl.id], locked = p.day < (ui.minDay || 1), x = X(pl.x), y = Y(pl.y), r = 15, goal = data.goalPlace === pl.id;
+    g.fillStyle = locked ? '#ece6f0' : '#ffffff'; g.strokeStyle = goal ? '#ffb400' : '#c48ad8'; g.lineWidth = goal ? 4 : 2.5;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.font = '17px ' + EMOJI_FONT; g.globalAlpha = locked ? 0.45 : 1; g.fillText(ui.icon, x, y + 1); g.globalAlpha = 1;
+    if (locked) { g.font = '11px ' + EMOJI_FONT; g.fillText('🔒', x + 11, y - 11); }
+    hits.push({ id: pl.id, x, y, r: r + 6 });
+  }
+  if (data.goal) { g.font = '18px ' + EMOJI_FONT; g.fillText('⭐', X(data.goal.x), Y(data.goal.y) - 16); }
+  if (data.luna) { g.font = '15px ' + EMOJI_FONT; g.fillText('🐶', X(data.luna.x) + 8, Y(data.luna.y) + 6); }
+  if (data.me) { const x = X(data.me.x), y = Y(data.me.y); g.fillStyle = '#ff4fa0'; g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.stroke(); }
+  return hits;
+}
+const MAP_LEGEND_HTML = `<div class="map-legend"><span><b class="lg me"></b> Tú</span><span>🐶 Luna</span><span><b class="lg ok"></b> Amistoso</span><span><b class="lg shy"></b> Tímido</span><span><b class="lg bad"></b> Peligro</span><span>⭐ Pío</span></div>`;
+const MAP_SAY = 'Este es el mapa del pueblo. El punto rosa eres tú. Toca un lugar y vamos caminando hasta allí.';
+// Tarjeta del mapa (HTML compartido). El lienzo se dibuja después con drawTownMap.
+const mapCardHTML = () => `<div class="result map-card"><h2>🗺️</h2><canvas id="townmap" class="townmap" width="640" height="440" aria-label="Mapa del pueblo. Toca un lugar para ir."></canvas>${MAP_LEGEND_HTML}</div>`;
+// Necesidad más importante (rojo primero; lo amarillo se puede omitir con «Ahora no») y tarea de la rutina
+function careGoal(p, isSkipped) {
+  const recovering = !!(p.sick && p.sick.treated);
+  const needs = needsOf(p).filter(x => !(x.icon === '🤒' && recovering));
+  for (const n of [...needs.filter(x => x.level === 'bad'), ...needs.filter(x => x.level === 'warn')]) {
+    const key = 'need-' + n.icon, fixed = n.level === 'bad';
+    if (!fixed && isSkipped(key)) continue;
+    const g = needGoal(n, p);
+    if (g) return { ...g, key, fixed };
+  }
+  return null;
+}
+function routineNext(p, isSkipped) {
+  for (const r of routineFor(p, p.day, today(p))) {
+    if (r.have >= r.need || !routineReady(p, r.icon) || isSkipped('routine-' + r.icon)) continue;
+    const g = routineGoal(r, p);
+    if (g) return g;
+  }
+  return null;
+}
+const recoverSay = (p, g) => (p.sick && p.sick.treated ? { ...g, key: 'rec-' + g.key, say: 'Luna se está curando: dale comida, agua y que descanse. ' + g.say } : g);

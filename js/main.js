@@ -157,6 +157,7 @@ document.addEventListener('click', ev => {
   if (d.help) { speak(PLACE_HELP[d.help]); hintInPanel(); return; }
   if (d.wake !== undefined) return wakeUp();
   if (d.diary !== undefined) return openDiary();
+  if (d.map !== undefined) return openMap2();
   if (d.music !== undefined) { Music.start(); t.textContent = Music.toggle() ? '🎵' : '🔕'; return; }
   if (d.mute !== undefined) { muted = !muted; Music.refresh(); try { localStorage.setItem('luna.muted', muted ? '1' : '0'); } catch (e) { /* */ } t.textContent = muted ? '🔇' : '🔊'; if (muted && 'speechSynthesis' in window) speechSynthesis.cancel(); return; }
   if (d.export !== undefined) return exportSave();

@@ -39,6 +39,7 @@ const world = {
   squirrel: null, sqT: 25, treasure: null, hide: null, heat: null, bflyCd: 0, digFx: null,
 };
 
+const MAP_ROADS2 = [];   // caminos para el mapa del pueblo
 function genMap() {
   const m = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(T.GRASS));
   const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < MAP_W && y < MAP_H) m[y][x] = v; };
@@ -55,8 +56,8 @@ function genMap() {
   for (let y = 20; y <= 21; y++) for (let x = 21; x <= 22; x++) set(x, y, T.WATER);
 
   // Caminos
-  const h = (y, x0, x1) => { for (let x = x0; x <= x1; x++) { set(x, y, T.PATH); reserve(x - 1, y - 1, x + 1, y + 1); } };
-  const v = (x, y0, y1) => { for (let y = y0; y <= y1; y++) { set(x, y, T.PATH); reserve(x - 1, y - 1, x + 1, y + 1); } };
+  const h = (y, x0, x1) => { MAP_ROADS2.push([x0 + 0.5, y + 0.5, x1 + 0.5, y + 0.5]); for (let x = x0; x <= x1; x++) { set(x, y, T.PATH); reserve(x - 1, y - 1, x + 1, y + 1); } };
+  const v = (x, y0, y1) => { MAP_ROADS2.push([x + 0.5, y0 + 0.5, x + 0.5, y1 + 0.5]); for (let y = y0; y <= y1; y++) { set(x, y, T.PATH); reserve(x - 1, y - 1, x + 1, y + 1); } };
   h(10, 4, 44);
   v(5, 9, 10); v(20, 9, 10); v(28, 9, 10); v(36, 9, 10);
   v(7, 17, 18); h(18, 7, 12); v(12, 11, 18);

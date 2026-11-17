@@ -338,17 +338,8 @@ function updateFetch(dt) {
   m.floaters = m.floaters.filter(f => f.t < 0.8);
   if (m.time >= m.dur) {
     m.over = true;
-    const bones = Math.floor(m.score / 2);
-    const joy = clamp(8 + m.score * 3, 8, 40);
     sfx('win');
-    finishMinigame({ stars: m.score >= 12 ? 3 : m.score >= 6 ? 2 : m.score >= 1 ? 1 : 0, bones, extra: `<span>🎾 ${m.score}</span>` }, pp => {
-      pp.bones += bones;
-      today(pp).play++;
-      applyFx(pp, { felicidad: joy, energia: -12, saciedad: -5, hidratacion: -8 });
-      addEvent(pp, '🎾', `Jugaron a la pelota en el parque: ¡${m.score} atrapadas!`);
-      if (m.score >= 15) addMilestone(pp, 'fetch15', '🥎', '¡Luna atrapó 15 pelotas en una partida!');
-      outdoorRisk(pp);
-    }, 'parque');
+    finishMinigame(fetchOutcome(m.score), pp => fetchRewards(pp, m.score), 'parque');   // js/extras.js
   }
 }
 function drawFetch(ctx) {
@@ -644,8 +635,7 @@ const ARROWS = ['up', 'right', 'down', 'left'];
 function startTrain(trickId) {
   const p = current.pet;
   const isPotty = trickId === 'potty';
-  const t = isPotty ? { id: 'potty', name: 'Hacer sus necesidades en su lugar', icon: '🧻', min: 3 } : TRICKS.find(x => x.id === trickId);
-  const cur = isPotty ? p.potty : (p.tricks[trickId] || 0);
+  const t = trainTrick(trickId), cur = trainLevel(p, trickId);
   const len = 3 + Math.floor(cur / 34);
   mg = { kind: 'train', trick: t, isPotty, round: 0, rounds: 3, ok: 0, len, seq: [], idx: 0, phase: 'show', pt: 0, flash: null, update: updateTrain, draw: drawTrain, over: false };
   newTrainRound();
@@ -682,20 +672,10 @@ function endTrainRound() { mg.round++; mg.phase = 'pause'; mg.pt = 0; }
 function finishTrain() {
   const m = mg, p = current.pet;
   m.over = true;
-  const gain = m.ok * 9 + (m.ok === 3 ? 6 : 0) + (p.stats.felicidad > 70 ? 4 : 0) + 2;
-  const key = m.trick.id;
-  const before = m.isPotty ? p.potty : (p.tricks[key] || 0);
-  const after = Math.min(100, before + gain);
+  const key = m.trick.id, after = trainAfter(p, key, m.ok);
   sfx(m.ok >= 2 ? 'win' : 'lose');
-  finishMinigame({ stars: m.ok, bones: m.ok, extra: `<span>${m.trick.icon || '🎓'} ${starBar(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}` }, pp => {
-    const e = today(pp);
-    e.sessions++; e.train++;
-    if (m.isPotty) pp.potty = after; else pp.tricks[key] = after;
-    applyFx(pp, { energia: -8, saciedad: -3, felicidad: 4 + m.ok * 2 });
-    pp.bones += m.ok;
-    if (after >= 100 && before < 100) addMilestone(pp, m.isPotty ? 'potty' : 'trick-' + key, '🏆', m.isPotty ? 'Luna aprendió a hacer sus necesidades en su lugar.' : `Luna aprendió: «${m.trick.name}».`);
-    else addEvent(pp, '🎓', `Practicaron «${m.trick.name}» (${after}%).`);
-  }, m.isPotty ? 'casa' : 'escuela');
+  finishMinigame({ stars: m.ok, bones: m.ok, extra: `<span>${m.trick.icon || '🎓'} ${starBar(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}` },
+    pp => trainRewards(pp, key, m.ok, after), m.isPotty ? 'casa' : 'escuela');   // js/extras.js
 }
 function drawArrow(ctx, x, y, dir, color, s = 3) {
   const shape = ['...#...', '..###..', '.#####.', '#######', '..###..', '..###..', '..###..'];
@@ -779,19 +759,9 @@ function updateBath(dt) {
   const left = m.spots.filter(s => s.hp > 0).length;
   if (left === 0 || m.time >= m.dur) {
     m.over = true;
-    const p = current.pet;
     const frac = (m.total - left) / m.total;
-    const champu = p.items.champu > 0;
-    const hig = Math.round(25 + 55 * frac), joy = champu ? 8 : -3;
     sfx('win');
-    finishMinigame({ stars: frac === 1 ? 3 : frac >= 0.6 ? 2 : frac > 0 ? 1 : 0, bones: 0, extra: `<span>🫧 +${hig}</span>${champu ? '<span>🧴💖</span>' : ''}` }, pp => {
-      if (champu) pp.items.champu--;
-      const e = today(pp); e.care++;
-      pp.lastDone.bano = pp.day;
-      applyFx(pp, { higiene: hig, felicidad: joy });
-      addEvent(pp, '🛁', `Baño con ${Math.round(frac * 100)}% de manchas limpias.`);
-      addMilestone(pp, 'bath1', '🛁', 'Primer baño de Luna.');
-    }, 'casa');
+    finishMinigame(bathOutcome(current.pet, frac), pp => bathRewards(pp, frac), 'casa');   // js/extras.js
   }
 }
 function drawBath(ctx) {

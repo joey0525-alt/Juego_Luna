@@ -376,6 +376,11 @@ const VALLEY = { x0: 42, x1: 70, z0: 13, z1: 48, gateZ: 19, riverZ: 34.5, bridge
 const inValley = (x, z) => x > VALLEY.x0 && z > VALLEY.z0;
 const triggers = [];
 
+// Caminos del pueblo (también los dibuja el mapa)
+const TOWN_PATHS3 = [[-31, -9, 67, -9], [-28, -12.5, -28, -9], [-16, -12, -16, -9], [-4, -12, -4, -9], [7, -12.5, 7, -9], [18, -12, 18, -9], [-4, -9, -4, -0.5], [10.5, -9, 10.5, 19],
+    [29, -12, 29, -9], [40, -12.5, 40, -9], [51, -12, 51, -9], [62, -12, 62, -9],   // calle norte nueva
+    [34, -9, 34, 19], [-22, 19, 44, 19], [-22, 15.4, -22, 19], [23, 19, 23, 22.5],    // avenida sur, refugio y parque para perros
+    [44, 19, 62, 19], [55, 19, 55, 42], [48, 42, 65, 42]];;
 function buildTown() {
   town.background = new THREE.Color('#bfe6ff');
   town.fog = new THREE.Fog('#bfe6ff', 45, 95);
@@ -385,10 +390,7 @@ function buildTown() {
   // manchas de pasto
   for (let i = 0; i < 70; i++) { const pt = mesh(G.cyl(1 + r() * 2.5, 1 + r() * 2.5, 0.02, 20), r() < 0.5 ? '#84cc63' : '#9ade7a', { cast: false, recv: true }); pt.position.set(BOUNDS.x0 - 4 + r() * (BOUNDS.x1 - BOUNDS.x0 + 8), 0.01, BOUNDS.z0 - 4 + r() * (BOUNDS.z1 - BOUNDS.z0 + 8)); town.add(pt); }
   // caminos
-  const paths = [[-31, -9, 67, -9], [-28, -12.5, -28, -9], [-16, -12, -16, -9], [-4, -12, -4, -9], [7, -12.5, 7, -9], [18, -12, 18, -9], [-4, -9, -4, -0.5], [10.5, -9, 10.5, 19],
-    [29, -12, 29, -9], [40, -12.5, 40, -9], [51, -12, 51, -9], [62, -12, 62, -9],   // calle norte nueva
-    [34, -9, 34, 19], [-22, 19, 44, 19], [-22, 15.4, -22, 19], [23, 19, 23, 22.5],    // avenida sur, refugio y parque para perros
-    [44, 19, 62, 19], [55, 19, 55, 42], [48, 42, 65, 42]];   // senderos del valle (el del medio cruza el río por el puente)
+  const paths = TOWN_PATHS3;
   const pathRects = [];
   for (const [x1, z1, x2, z2] of paths) {
     const w = Math.abs(x2 - x1) + 2.4, d = Math.abs(z2 - z1) + 2.4;
@@ -875,7 +877,7 @@ function refreshHUD() {
   const p = current.pet;
   const bars = STAT_INFO.map(i => { const v = Math.round(p.stats[i.key]); return `<div class="hb ${v < 25 ? 'low' : ''}" title="${i.label}"><span>${i.icon}</span><i><b style="width:${v}%;background:${i.color}"></b></i></div>`; }).join('');
   $('#hud').innerHTML = `<div class="hud-left"><a class="hbtn" href="../index.html" aria-label="Volver al juego 2D">🕹️</a><span class="face">${MOOD_FACE[moodOf(p)]}</span></div>
-    <div class="hud-bars">${bars}</div><div class="hud-right"><span class="chip">🦴 ${p.bones}</span><span class="chip">${STAGE_ICON3[stageOf(p.day).id]} ${p.day}</span><button class="hbtn" id="diary3" aria-label="Diario">📖</button><button class="hbtn" id="music" aria-label="Música">${Music.isOn() ? '🎵' : '🔕'}</button><button class="hbtn" id="mute" aria-label="Sonido">${muted ? '🔇' : '🔊'}</button></div>`;
+    <div class="hud-bars">${bars}</div><div class="hud-right"><span class="chip">🦴 ${p.bones}</span><span class="chip">${STAGE_ICON3[stageOf(p.day).id]} ${p.day}</span><span class="chip">🔥 ${p.streak}</span><button class="hbtn" id="map3" aria-label="Mapa">🗺️</button><button class="hbtn" id="diary3" aria-label="Diario">📖</button><button class="hbtn" id="music" aria-label="Música">${Music.isOn() ? '🎵' : '🔕'}</button><button class="hbtn" id="mute" aria-label="Sonido">${muted ? '🔇' : '🔊'}</button></div>`;
   refreshGuide3();
 }
 const STAGE_ICON3 = { recien: '🐣', bebe: '🍼', cachorra: '🐶', joven: '🐕', adulta: '🎂' };
@@ -894,83 +896,75 @@ function updatePrompt() {
   el.hidden = !html;
 }
 
-// ---------- Acciones dentro de casa ----------
+// ---------- Acciones dentro de casa (lista y efectos comunes con el 2D: ../js/extras.js) ----------
+// Botones a partir de la lista común: [{ id, icon, label, fx, badge, why, count }]
+function optsHTML3(list, extra = []) {
+  const all = [{ id: 'help', icon: '❓', label: 'Ayuda' }, ...list, ...extra];
+  return all.map(x => {
+    const say = x.badge ? `${x.label}. ${x.why || ''}` : x.label;
+    return `<button class="opt ${x.badge ? 'off' : ''}" data-act="${x.id}" data-say="${esc3(say)}" ${x.badge ? 'aria-disabled="true"' : ''} aria-label="${esc3(say)}"><span class="oi">${x.icon}</span><span class="on">${esc3(x.label)}</span>${x.fx ? `<span class="ofx">${x.fx}</span>` : ''}${x.badge ? `<span class="badge">${x.badge}</span>` : x.count != null ? `<span class="badge cnt">${x.count}</span>` : ''}</button>`;
+  }).join('');
+}
 function homeActions() {
   if (where !== 'home') return;   // una acción que termina tarde no debe pintar botones en otro lugar
-  const p = current.pet, s = p.stats, d = p.day, e = today(p), f = foodFor(d);
-  const off = (cond, badge) => (cond ? badge : '');
-  const sleeping = p.asleep ? '💤' : '';
-  const list = [
-    ['eat', f.icon, 'Comer', sleeping || off(s.saciedad >= 90, '😋')],
-    d >= 4 ? ['water', '💧', 'Agua', sleeping || off(s.hidratacion >= 92, '💧')] : null,
-    ['pet', '🤗', 'Mimos', ''],
-    ['memory', '🃏', 'Memoria', ''],
-    p.items.premio > 0 ? ['treat', '🍪', 'Premio', sleeping || off((e.treats || 0) >= 3, '⏳')] : null,
-    p.items.mordedor && d >= 3 ? ['toy', '🧸', 'Jugar', sleeping || off(s.energia < 15, '😴')] : null,
-    p.asleep ? ['wake', '⏰', 'Despertar', ''] : ['sleep', '🛏️', 'Dormir', ''],
-    ['nap', '😴', 'Siesta', sleeping || off(e.naps >= 3, '⏳') || off(s.energia >= 90, '⚡')],
-    d < 8 ? ['wipe', '🧽', 'Limpiar', sleeping] : ['bath', '🛁', 'Baño', sleeping || off(p.lastDone.bano && d - p.lastDone.bano < 3, '⏳')],
-    d >= 3 ? ['brush', '🖌️', 'Cepillar', sleeping] : null,
-    p.mess ? ['clean', '🧻', 'Recoger', ''] : null,
-    d >= 3 ? ['potty', '🧻', 'Papel', sleeping || off(p.potty >= 100, '✔') || off((e.potty || 0) >= 3, '⏳')] : null,
-    ['ropa', '🎀', 'Ropa', p.acc.owned.length ? '' : '🛒'],
-    ['exit', '🚪', 'Salir', ''],
-    ['help', '❓', 'Ayuda', ''],
-  ].filter(Boolean);
-  $('#actions').innerHTML = list.map(([id, icon, label, badge]) =>
-    `<button class="opt ${badge ? 'off' : ''}" data-act="${id}" data-say="${label}" ${badge ? 'aria-disabled="true"' : ''} aria-label="${label}"><span class="oi">${icon}</span><span class="on">${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`).join('');
+  $('#actions').innerHTML = optsHTML3(placeActions('casa', current.pet), [{ id: 'exit', icon: '🚪', label: 'Salir' }]);
   if (typeof refreshGuide3 === 'function') setTimeout(refreshGuide3, 0);
 }
-function counted(kind) {
-  const e = today(current.pet);
-  if (kind === 'meal') e.meals++; if (kind === 'water') e.water++; if (kind === 'play') e.play++; if (kind === 'care') e.care++;
+function counted(kind) { countKind(current.pet, kind); }
+// Aplica el efecto común al terminar la animación
+function applyEffect3(r, sc, after) {
+  const p = current.pet;
+  applyFx(p, r.fx); countKind(p, r.kind); addEvent(p, r.icon, r.msg);
+  const gains = Object.entries(r.fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
+  pop(r.icon, gains ? '+' + gains : ''); if (r.word) speak(r.word);
+  if (r.sad) dogSound('sad', dogSize()); else dogSound('happy', dogSize(), 0.7);
+  luna.mode = 'happy'; luna.modeT = 1;
+  busy = false; saveRoot(); refreshHUD();
+  if (after) after();
+  refreshGuide3();
 }
 // Luna camina hasta el lugar, hace la animación y luego se aplica el efecto
 function act(id) {
   const p = current.pet;
   if (busy && id !== 'exit') return;
-  if (id !== 'exit') setTimeout(() => guideEvent3('do:' + id), 0);
-  const f = foodFor(p.day);
-  const run = (spot, mode, secs, fx, kind, icon, word, emoji, msg, after) => {
+  if (id === 'exit') return goTown();
+  if (id === 'ropa') id = 'wear:';
+  setTimeout(() => guideEvent3('do:' + id.split(':')[0]), 0);
+  const r = placeEffect(id, p);   // efecto común (../js/extras.js)
+  const done = () => { homeActions(); refreshMess(p); };
+  if (r.fx) {
+    const ANIM = { food: ['food', 'eat', 2.2, '🍖'], water: ['water', 'eat', 1.8, '💧'], toys: ['toys', 'happy', 2, '⭐'], bed: ['bed', 'sleep', 2.5, '💤'], center: ['center', 'happy', 1.6, r.icon === '🧽' ? '🫧' : '✨'] }[r.anim];
+    if (!ANIM) {   // aquí mismo: mimos, premio, recoger
+      luna.mode = 'happy'; luna.modeT = 1.4;
+      burst(home, r.icon === '🤗' ? '💖' : r.icon, new THREE.Vector3(r.icon === '🧻' ? 1.5 : luna.x, 1.4, r.icon === '🧻' ? 2 : luna.z), 5);
+      return applyEffect3(r, home, done);
+    }
+    const [spot, mode, secs, emoji] = ANIM;
     busy = true;
-    walkTo(HOME_SPOT[spot], () => {
+    return walkTo(HOME_SPOT[spot], () => {
       luna.mode = mode; luna.modeT = secs;
       if (spot === 'food') spots.food.userData.fill.visible = true;
-      speak(word); sfx('pop');
+      sfx('pop');
       const t0 = performance.now();
       const tick = setInterval(() => { burst(home, emoji, new THREE.Vector3(luna.x, 1.6 * dog.root.scale.x + 0.3, luna.z), 1, 0.45); if (performance.now() - t0 > secs * 1000) clearInterval(tick); }, 350);
-      setTimeout(() => {
-        applyFx(p, fx); counted(kind); addEvent(p, icon, msg);
-        if (after) after();
-        const gains = Object.entries(fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
-        pop(icon, gains ? '+' + gains : '');
-        luna.mode = mode === 'sleep' ? 'sleep' : 'happy'; luna.modeT = mode === 'sleep' ? 0 : 1;
-        if (mode !== 'sleep') dogSound('happy', dogSize(), 0.7);
-        busy = false; saveRoot(); refreshHUD(); homeActions(); refreshMess(p); refreshGuide3();
-      }, secs * 1000);
+      setTimeout(() => { applyEffect3(r, home, done); if (mode === 'sleep') luna.mode = 'idle'; }, secs * 1000);
     });
-  };
-  switch (id) {
-    case 'eat': return run('food', 'eat', 2.2, f.fx, 'meal', f.icon, '¡Ñam ñam!', '🍖', f.msg);
-    case 'water': return run('water', 'eat', 1.8, { hidratacion: 40 }, 'water', '💧', '¡Glu glu!', '💧', 'Luna bebió agua fresca.');
-    case 'pet': luna.mode = 'happy'; luna.modeT = 1.4; burst(home, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 6); applyFx(p, p.asleep ? { felicidad: 4 } : { felicidad: 12, energia: -2 }); counted('play'); addEvent(p, '🤗', 'Mimos y caricias.'); pop('🤗', '+💖'); speak('¡Te quiero!'); setTimeout(() => dogSound('happy', dogSize()), 600); saveRoot(); refreshHUD(); return;
-    case 'toy': return run('toys', 'happy', 2, { felicidad: 18, energia: -8 }, 'play', '🧸', '¡A jugar!', '⭐', 'Jugó con el mordedor.');
-    case 'sleep': busy = true; walkTo(HOME_SPOT.bed, () => { p.asleep = true; luna.mode = 'sleep'; addEvent(p, '🛏️', 'Se fue a dormir a su camita.'); pop('🛏️', '💤'); speak('Buenas noches, Luna'); busy = false; saveRoot(); refreshHUD(); homeActions(); }); return;
-    case 'wake': p.asleep = false; if (p.stats.energia < 60) p.stats.felicidad = clamp(p.stats.felicidad - 6, 0, 100); luna.mode = 'idle'; addEvent(p, '⏰', 'Despertaste a Luna.'); pop('⏰'); speak('¡Buenos días!'); saveRoot(); refreshHUD(); homeActions(); return;
-    case 'nap': return run('bed', 'sleep', 2.5, { energia: 25 }, null, '😴', 'Siestita', '💤', 'Durmió una siesta cortita.', () => { today(p).naps++; luna.mode = 'idle'; });
-    case 'wipe': return run('center', 'happy', 1.6, { higiene: 20 }, 'care', '🧽', '¡Limpita!', '🫧', 'La limpiaste con un paño tibio.');
-    case 'bath': return run('tub', 'happy', 2.6, { higiene: 60, felicidad: p.items.champu > 0 ? 8 : -3 }, 'care', '🛁', '¡Al agua!', '🫧', 'Se dio un baño.', () => { p.lastDone.bano = p.day; if (p.items.champu > 0) p.items.champu--; });
-    case 'brush': return run('center', 'happy', 1.6, { higiene: 10, felicidad: 5 }, 'care', '🖌️', '¡Qué suave!', '✨', 'Le cepillaste el pelo.');
-    case 'clean': p.mess = 0; counted('care'); addEvent(p, '🧻', 'Limpiaste los accidentes.'); burst(home, '✨', new THREE.Vector3(1.5, 0.6, 2), 6); pop('🧻', '✔'); speak('¡Todo limpio!'); refreshMess(p); saveRoot(); homeActions(); return;
-    case 'potty': { if (p.asleep || p.potty >= 100 || (today(p).potty || 0) >= 3) return; today(p).potty = (today(p).potty || 0) + 1; const g = 8 + Math.round(Math.random() * 6); p.potty = Math.min(100, p.potty + g); today(p).train++; luna.mode = 'sit'; luna.modeT = 1.2; pop('🧻', `+${g}%`); speak('¡Muy bien, en el papel!'); addEvent(p, '🎓', `Practicaron usar el papel (${p.potty}%).`); if (p.potty >= 100) addMilestone(p, 'potty', '🏆', 'Luna aprendió a hacer sus necesidades en su lugar.'); saveRoot(); homeActions(); return; }
-    case 'ropa': { const opts = [null, ...p.acc.owned]; p.acc.worn = opts[(opts.indexOf(p.acc.worn) + 1) % opts.length]; luna.mode = 'happy'; luna.modeT = 1; pop(p.acc.worn ? SHOP.find(x => x.id === p.acc.worn).icon : '🚫'); speak(p.acc.worn ? '¡Qué guapa!' : ''); saveRoot(); return; }
-    case 'exit': return goTown();
+  }
+  switch (r.special) {
+    case 'wear': luna.mode = 'happy'; luna.modeT = 1; pop(r.icon); speak(r.word); saveRoot(); return homeActions();
+    case 'sleep': busy = true; walkTo(HOME_SPOT.bed, () => { p.asleep = true; luna.mode = 'sleep'; addEvent(p, '🛏️', 'Acostaste a Luna en su camita.'); pop('🛏️', '💤'); speak('Buenas noches, Luna'); busy = false; saveRoot(); refreshHUD(); homeActions(); }); return;
+    case 'wake':
+      p.asleep = false; luna.mode = 'idle';
+      if (p.stats.energia < 60) { p.stats.felicidad = clamp(p.stats.felicidad - 6, 0, 100); addEvent(p, '⏰', 'Despertaste a Luna antes de tiempo.'); pop('😫'); speak('¡Uy, tenía sueño!'); dogSound('sad', dogSize()); }
+      else { addEvent(p, '⏰', 'Luna despertó con energía.'); pop('⏰'); speak('¡Buenos días!'); }
+      saveRoot(); refreshHUD(); homeActions(); return;
     case 'memory': return startMemory3();
-    case 'treat': { if (p.asleep || !p.items.premio) return; p.items.premio--; today(p).treats = (today(p).treats || 0) + 1; luna.mode = 'happy'; luna.modeT = 1.4; applyFx(p, { felicidad: 10, saciedad: 5 }); addEvent(p, '🍪', 'Le diste un premio.'); burst(home, '🍪', new THREE.Vector3(luna.x, 1.4, luna.z), 3); pop('🍪', '+💖'); speak('¡Un premio!'); setTimeout(() => dogSound('happy', dogSize()), 400); saveRoot(); refreshHUD(); homeActions(); return; }
+    case 'potty': return startTrain3('potty');
+    case 'bath': return startBath3();
   }
 }
 
-// ---------- Parque (acciones sin cambiar de escena) ----------
+// ---------- Parque (acciones sin cambiar de escena; mismas que el 2D) ----------
 let inParkUI = false;
 function openPark() {
   inParkUI = true; where = 'park';
@@ -981,38 +975,34 @@ function openPark() {
 function closePark() { inParkUI = false; where = 'town'; busy = false; luna.path = null; $('#actions').hidden = true; }
 function parkActions() {
   if (where !== 'park') return;   // una acción que termina tarde no debe pintar botones en otro lugar
-  const p = current.pet, tired = p.asleep ? '💤' : (p.sick && !p.sick.treated) ? '🤒' : p.stats.energia < 15 ? '😴' : '';
-  const list = [['agility', '🏃', 'Carrera', tired], ['hide', '🙈', 'Escondite', p.day < 5 ? '🔒' : tired], ['stroll', '🚶', 'Pasear', tired], ['kick', '⚽', 'Pelota', tired], ['bench', '🪑', 'Descansar', p.asleep ? '💤' : p.stats.energia >= 95 ? '⚡' : ''], ['closepark', '🚪', 'Salir', ''], ['help', '❓', 'Ayuda', '']];
-  $('#actions').innerHTML = list.map(([id, icon, label, badge]) =>
-    `<button class="opt ${badge ? 'off' : ''}" data-act="${id}" data-say="${label}" ${badge ? 'aria-disabled="true"' : ''} aria-label="${label}"><span class="oi">${icon}</span><span class="on">${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`).join('');
+  $('#actions').innerHTML = optsHTML3(placeActions('parque', current.pet), [{ id: 'closepark', icon: '🚪', label: 'Salir' }]);
 }
 function parkAct(id) {
   const p = current.pet, P0 = PL.find(x => x.id === 'parque');
   if (id === 'closepark') return closePark();
   if (busy) return;
+  setTimeout(() => guideEvent3('do:' + id), 0);
   if (id === 'agility') { closePark(); return startAgility3(); }
   if (id === 'hide') { closePark(); return startHide3(); }
-  const finish = (fx, icon, msg, word) => {
-    applyFx(p, fx); today(p).play += icon === '🪑' ? 0 : 1; addEvent(p, icon, msg);
-    const gains = Object.entries(fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
-    pop(icon, gains ? '+' + gains : ''); speak(word); dogSound('happy', dogSize(), 0.7);
-    luna.mode = 'happy'; luna.modeT = 1; busy = false; outdoorRisk(p); saveRoot(); refreshHUD(); parkActions();
-  };
+  if (id === 'fetch') { closePark(); return startFetch3(); }
+  const r = placeEffect(id, p);
+  if (!r.fx) return;
+  const finish = () => applyEffect3(r, town, parkActions);
   busy = true;
   if (id === 'stroll') {   // vuelta alrededor de la fuente
     const pts = [0, 1, 2, 3, 4].map(i => [P0.x + Math.cos(i * Math.PI / 2) * 3.2, P0.z + Math.sin(i * Math.PI / 2) * 3.2]);
-    const next = () => { const q = pts.shift(); if (!q) { today(p).walk = 1; return finish({ felicidad: 15, energia: -10, hidratacion: -5 }, '🚶', 'Paseo alrededor de la fuente.', '¡Qué lindo paseo!'); } walkTo([q[0], q[1], 0], next); };
+    const next = () => { const q = pts.shift(); if (!q) return finish(); walkTo([q[0], q[1], 0], next); };
     next();
   } else if (id === 'kick') {
     const b = ball.m.position;
     walkTo([b.x - 0.9, b.z, Math.PI / 2], () => {
       ball.v.set(6 + Math.random() * 3, 0, (Math.random() - 0.5) * 6); sfx('pop'); dogSound('bark', dogSize());
       luna.mode = 'happy'; luna.modeT = 1.5;
-      setTimeout(() => finish({ felicidad: 16, energia: -9 }, '⚽', 'Jugó con la pelota en el parque.', '¡Gol!'), 1500);
+      setTimeout(finish, 1500);
     });
   } else if (id === 'bench') {
-    walkTo([P0.x - 3.2, P0.z + 1, Math.PI / 2], () => { luna.mode = 'sleep'; setTimeout(() => finish({ energia: 10 }, '🪑', 'Descansaron en la banca.', 'Descansito'), 1800); });
-  }
+    walkTo([P0.x - 3.2, P0.z + 1, Math.PI / 2], () => { luna.mode = 'sleep'; setTimeout(finish, 1800); });
+  } else finish();
 }
 
 function walkTo(spot, done) {
@@ -1126,39 +1116,26 @@ function buildVet() {
 function vetActions() {
   if (where !== 'room' || roomId !== 'vet') return;   // una acción que termina tarde no debe pintar botones en otro lugar
   const p = current.pet;
-  const due = VACCINES.find(v => ['disponible', 'atrasada'].includes(vaccineStatus(p, v)));
-  const dw = dewormDue(p);
-  renderActions([
-    p.sick && !p.sick.treated ? ['cure', '💊', 'Curar', '', '🩺'] : null,
-    ['vac', '💉', 'Vacuna', due ? '' : '✔', '🛡️'],
-    ['deworm', '🐛', 'Pastilla', dw ? '' : '✔', '🛡️'],
-    ['check', '🩺', 'Revisar', '', '⚖️'],
-    ['exit', '🚪', 'Salir', ''],
-  ]);
+  $('#actions').innerHTML = optsHTML3(placeActions('vet', p), [{ id: 'exit', icon: '🚪', label: 'Salir' }]);   // mismas que el 2D
+  setTimeout(refreshGuide3, 0);
   setInfo(`<div class="vax">${VACCINES.map(v => { const s = vaccineStatus(p, v); return `<span class="vx ${s}" title="${v.name}">${s === 'pendiente' ? '⏳' : '💉'}<b>${s === 'aplicada' ? '✔' : s === 'atrasada' ? '❗' : s === 'disponible' ? '👉' : ''}</b></span>`; }).join('')}</div>`);
 }
 function vetAct(id) {
-  const p = current.pet, d = p.day;
-  if (busy) return;
-  if (id === 'check') return card3(checkupHTML3(p));
-  const due = VACCINES.find(v => ['disponible', 'atrasada'].includes(vaccineStatus(p, v)));
-  if (id === 'vac' && !due) return;
-  if (id === 'deworm' && !dewormDue(p)) return;
+  const p = current.pet, e = today(p);
+  if (busy || id === 'none') return;
+  if (id === 'checkup') { if (!e.checkup) { e.checkup = true; addEvent(p, '🩺', 'Revisión general en la veterinaria.'); saveRoot(); } return card3(checkupHTML3(p)); }
+  const r = placeEffect(id, p);
+  if (!r.fx) return;
   busy = true;
   walkTo([0, -1.6, Math.PI * 0.75], () => {
     npcs.vet.userData.wave = 2;
-    const icon = id === 'vac' ? '💉' : id === 'deworm' ? '💊' : '💊';
-    syringe.material.map = emojiTex(icon); syringe.material.needsUpdate = true;
+    syringe.material.map = emojiTex(r.icon); syringe.material.needsUpdate = true;
     syringe.position.set(luna.x + 0.6, 1.6, luna.z + 0.3); syringe.visible = true;
-    if (id === 'vac') { dogSound('sad', dogSize()); speak('¡Un pinchacito rápido!'); } else speak(id === 'deworm' ? 'Una pastilla contra los bichitos' : 'Medicina para curarse');
+    if (r.sad) { dogSound('sad', dogSize()); speak('¡Un pinchacito rápido!'); }
     setTimeout(() => {
       syringe.visible = false;
-      if (id === 'vac') { p.vaccines[due.id] = d; applyFx(p, { felicidad: -4 }); addEvent(p, '💉', `Vacuna aplicada: ${due.name}.`); if (walkUnlocked(p)) addMilestone(p, 'vacunas', '🛡️', 'Luna completó sus vacunas de cachorro.'); pop('💉', '🛡️'); speak('¡Qué valiente! Toma un premio.'); }
-      if (id === 'deworm') { p.deworm.push(d); addEvent(p, '💊', 'Luna tomó su desparasitante.'); pop('🐛', '✔'); speak('¡Listo, sin bichitos!'); }
-      if (id === 'cure') { p.sick.treated = true; p.stats.salud = clamp(p.stats.salud + 10, 0, 100); addEvent(p, '💊', 'La veterinaria le dio tratamiento a Luna.'); pop('💊', '+🩺'); speak('Ahora necesita descansar, comer y beber agua'); }
       burst(vetRoom, '⭐', new THREE.Vector3(luna.x, 1.4, luna.z), 5);
-      luna.mode = 'happy'; luna.modeT = 1.2; setTimeout(() => dogSound('happy', dogSize()), 400);
-      busy = false; saveRoot(); refreshHUD(); vetActions();
+      applyEffect3(r, vetRoom, vetActions);
     }, 1600);
   });
 }
@@ -1233,9 +1210,9 @@ function schoolActions() {
 const ARROW_EMO = { up: '⬆️', right: '➡️', down: '⬇️', left: '⬅️' };
 let train3 = null;
 function startTrain3(trickId) {
-  const p = current.pet, t = TRICKS.find(x => x.id === trickId);
-  const cur = p.tricks[trickId] || 0;
-  train3 = { t, len: 3 + Math.floor(cur / 34), round: 0, ok: 0, seq: [], idx: 0, phase: 'show', pt: 0 };
+  const p = current.pet, t = trainTrick(trickId);   // trucos y el papel (../js/extras.js)
+  const cur = trainLevel(p, trickId);
+  train3 = { t, len: 3 + Math.floor(cur / 34), round: 0, ok: 0, seq: [], idx: 0, phase: 'show', pt: 0, home: trickId === 'potty' };
   $('#actions').hidden = true;
   $('#train3').hidden = false;
   speak('¡Mira las flechas y luego repítelas!');
@@ -1269,7 +1246,7 @@ function trainInput3(dir) {
 function endRound3(ok) {
   const m = train3;
   m.round++; m.phase = 'pause'; m.pt = 0;
-  if (ok) { luna.mode = TRICK_POSE[m.t.id] || 'sit'; luna.modeT = 1.6; burst(schoolRoom, '⭐', new THREE.Vector3(luna.x, 1.6, luna.z), 5); dogSound('happy', dogSize()); npcs.escuela.userData.wave = 1.5; }
+  if (ok) { luna.mode = TRICK_POSE[m.t.id] || 'sit'; luna.modeT = 1.6; burst(scene, '⭐', new THREE.Vector3(luna.x, 1.6, luna.z), 5); dogSound('happy', dogSize()); if (!m.home) npcs.escuela.userData.wave = 1.5; }
   else { pop('❌'); dogSound('sad', dogSize()); }
 }
 function updateTrain3(dt) {
@@ -1283,15 +1260,10 @@ function finishTrain3() {
   const m = train3, p = current.pet;
   train3 = null;
   $('#train3').hidden = true;
-  const before = p.tricks[m.t.id] || 0;
-  const after = Math.min(100, before + m.ok * 9 + (m.ok === 3 ? 6 : 0) + (p.stats.felicidad > 70 ? 4 : 0) + 2);
-  const e = today(p); e.sessions++; e.train++;
-  p.tricks[m.t.id] = after; p.bones += m.ok;
-  applyFx(p, { energia: -8, saciedad: -3, felicidad: 4 + m.ok * 2 });
-  if (after >= 100 && before < 100) addMilestone(p, 'trick-' + m.t.id, '🏆', `Luna aprendió: «${m.t.name}».`);
-  else addEvent(p, '🎓', `Practicaron «${m.t.name}» (${after}%).`);
+  const after = trainAfter(p, m.t.id, m.ok);
+  trainRewards(p, m.t.id, m.ok, after);   // mismas recompensas que el 2D
   saveRoot(); refreshHUD();
-  resultCard3(m.ok, m.ok, `<span>${m.t.icon} ${starBar3(after)}</span>`, () => { $('#actions').hidden = false; schoolActions(); });
+  resultCard3(m.ok, m.ok, `<span>${m.t.icon} ${starBar3(after)}</span>${after >= 100 ? '<span>🏆</span>' : ''}`, () => { $('#actions').hidden = false; if (m.home) homeActions(); else schoolActions(); });
 }
 function resultCard3(stars, bones, extra, cb) {
   const word = ['¡Otra vez!', '¡Bien!', '¡Muy bien!', '¡Genial!'][clamp(stars, 0, 3)];
@@ -1359,42 +1331,32 @@ function openLake() {
 }
 function lakeActions() {
   if (where !== 'lake') return;   // una acción que termina tarde no debe pintar botones en otro lugar
-  const p = current.pet, e = today(p), s = p.stats;
-  renderActions([
-    ['duckfeed', '🌾', 'Dar de comer', '', '🦆🦴'],
-    ['ducks', '🦆', 'Mirar patos', p.asleep ? '💤' : e.ducks ? '⏳' : '', '💖'],
-    p.day >= 4 ? ['drink', '🚰', 'Beber', p.asleep ? '💤' : s.hidratacion >= 92 ? '💧' : '', '💧'] : null,
-    p.day >= 8 ? ['splash', '💦', 'Chapotear', playBlock(p), '💖'] : null,
-    ['closelake', '🚪', 'Salir', ''],
-  ]);
+  $('#actions').innerHTML = optsHTML3(placeActions('lago', current.pet), [{ id: 'closelake', icon: '🚪', label: 'Salir' }]);   // mismas que el 2D
+  setTimeout(refreshGuide3, 0);
 }
 function lakeAct(id) {
-  const p = current.pet, pl = PL.find(x => x.id === 'lago'), e = today(p);
+  const p = current.pet, pl = PL.find(x => x.id === 'lago');
   if (id === 'closelake') { where = 'town'; $('#actions').hidden = true; return; }
   if (busy) return;
+  setTimeout(() => guideEvent3('do:' + id), 0);
   if (id === 'duckfeed') { where = 'town'; $('#actions').hidden = true; return startDucks3(); }
+  const r = placeEffect(id, p);
+  if (!r.fx) return;
+  const done = () => applyEffect3(r, town, lakeActions);
   busy = true;
-  const done = (fx, kind, icon, msg, word) => {
-    applyFx(p, fx); if (kind) counted(kind); addEvent(p, icon, msg);
-    const gains = Object.entries(fx).filter(([, v]) => v > 0).map(([k]) => STAT_ICON[k]).join('');
-    pop(icon, gains ? '+' + gains : ''); speak(word); dogSound('happy', dogSize(), 0.7);
-    luna.mode = 'happy'; luna.modeT = 1; busy = false; outdoorRisk(p); saveRoot(); refreshHUD(); lakeActions();
-  };
   if (id === 'ducks') walkTo([pl.x - 3.2, pl.z, Math.PI / 2], () => {
     ducks.forEach(dk => { dk.userData.r = 1.2; });
     let n = 0; const q = setInterval(() => { sfx('quack'); if (++n >= 3) clearInterval(q); }, 450);
     burst(town, '💖', new THREE.Vector3(luna.x, 1.4, luna.z), 4);
-    setTimeout(() => { ducks.forEach((dk, i) => { dk.userData.r = 1.5 + i * 0.9; }); e.ducks = true; done({ felicidad: 10 }, 'play', '🦆', 'Miraron a los patos.', '¡Cuac cuac!'); }, 1800);
+    setTimeout(() => { ducks.forEach((dk, i) => { dk.userData.r = 1.5 + i * 0.9; }); done(); }, 1800);
   });
-  if (id === 'drink') walkTo([fountainLake.position.x + 0.9, fountainLake.position.z, -Math.PI / 2], () => {
-    luna.mode = 'eat'; luna.modeT = 1.6;
-    setTimeout(() => done({ hidratacion: 30 }, 'water', '🚰', 'Bebió del bebedero del lago.', '¡Glu glu!'), 1600);
-  });
-  if (id === 'splash') walkTo([pl.x - 4.6, pl.z + 2.6, Math.PI / 2], () => {
+  else if (id === 'fountain') walkTo([fountainLake.position.x + 0.9, fountainLake.position.z, -Math.PI / 2], () => { luna.mode = 'eat'; luna.modeT = 1.6; setTimeout(done, 1600); });
+  else if (id === 'splash') walkTo([pl.x - 4.6, pl.z + 2.6, Math.PI / 2], () => {
     luna.mode = 'happy'; luna.modeT = 2;
     const iv = setInterval(() => burst(town, '💦', new THREE.Vector3(luna.x + 0.5, 0.6, luna.z), 2, 0.5), 250);
-    setTimeout(() => { clearInterval(iv); done({ felicidad: 18, energia: -10, higiene: -18 }, 'play', '💦', 'Chapoteó en la orilla.', '¡Splash!'); }, 1800);
+    setTimeout(() => { clearInterval(iv); done(); }, 1800);
   });
+  else done();
 }
 
 // ---------- Bosque: niveles de saltos en 3D (misma física y niveles que el 2D) ----------
@@ -1585,17 +1547,13 @@ function enterPlace3(pl) {
 function openDiary3() {
   const p = current.pet, e = today(p), st = stageOf(p.day);
   const r = routineFor(p, p.day, e);
-  const all = [...Object.entries(DAY_MILESTONES).map(([d2, m]) => ({ key: 'day' + d2, icon: m[0], text: m[1] })),
-    { key: 'walk1', icon: '🌳' }, { key: 'bath1', icon: '🛁' }, { key: 'vacunas', icon: '🛡️' }, { key: 'allbones', icon: '🔍' }, { key: 'tutorial', icon: '🐦' },
-    { key: 'treasure1', icon: '💰' }, { key: 'squirrel', icon: '🐿️' }, { key: 'hide1', icon: '🙈' }, { key: 'agility', icon: '🏃' }, { key: 'ducks10', icon: '🦆' }, { key: 'memory', icon: '🃏' },
-    ...LEVEL_DEFS.map(L => ({ key: 'lvl' + L.id, icon: ['🌲', '⛰️', '💎'][L.id - 1] })), ...TRICKS.map(t => ({ key: 'trick-' + t.id, icon: t.icon })),
-    ...EXTRA_STICKERS];
+  const all = allStickers();   // lista común (../js/extras.js)
   const got = new Set(p.milestones.map(m => m.key));
   speak('Diario de Luna');
   card3(`<div class="result"><h2>📖</h2>
     <div class="weekbox"><span>${STAGE_ICON3[st.id]} ${p.day}</span><span>⚖️ ${fmtWeight(p.weight)}</span><span>🔥 ${p.streak}</span>${p.rpg && p.rpg.met ? `<span>${RANKS[rankOf(p.rpg.xp)]}</span>` : ''}</div>
     <div class="today">${r.map(x => `<span class="tday ${x.have >= x.need ? 'ok' : ''}"><i>${x.icon}</i><b>${x.have >= x.need ? '⭐' : `${Math.min(x.have, x.need)}/${x.need}`}</b></span>`).join('')}</div>
-    <div class="stickers">${all.map(m => `<span class="stk ${got.has(m.key) ? '' : 'off'}">${got.has(m.key) ? m.icon : '❔'}</span>`).join('')}</div></div>`);
+    <div class="stickers">${all.map(m => got.has(m.key) ? `<button class="stk" data-say="${esc3(m.text)}" aria-label="${esc3(m.text)}">${m.icon}</button>` : '<span class="stk off">❔</span>').join('')}</div>${parentsHTML(p, e, current.name)}</div>`);
 }
 
 // ---------- Avisos de Pío en 3D (lugar nuevo, vacuna, enfermedad) ----------
@@ -1662,51 +1620,17 @@ function tut3(p) {
   }
   return p.tut;
 }
-const NEED3 = {
-  '🍖': { place: 'casa', doId: 'eat', say: 'Luna tiene hambre. Ve a la casa y toca Comer.' },
-  '💧': { place: 'casa', doId: 'water', say: 'Luna tiene sed. Ve a la casa y toca Agua.' },
-  '😴': { place: 'casa', doId: 'nap', say: 'Luna tiene sueño. En la casa toca Siesta o Dormir.' },
-  '🫧': { place: 'casa', doId: 'bath', say: 'Luna está sucia. Ve a la casa para limpiarla.' },
-  '💩': { place: 'casa', doId: 'clean', say: 'Luna hizo un accidente en casa. Hay que recogerlo.' },
-  '🎾': { place: 'parque', doId: 'kick', say: 'Luna está aburrida. ¡Vamos al parque a jugar con la pelota!' },
-  '🤒': { place: 'vet', doId: 'cure', say: 'Luna está enfermita. Llévala a la veterinaria y toca Curar.' },
-  '💉': { place: 'vet', doId: 'vac', say: 'Hoy le toca una vacuna. Ve a la veterinaria y toca Vacuna.' },
-  '💊': { place: 'vet', doId: 'deworm', say: 'Luna necesita su pastilla contra los bichitos. Ve a la veterinaria.' },
-  '✂️': { place: 'casa', doId: 'brush', say: 'Hora de arreglar a Luna. Ve a la casa y cepíllala.' },
-};
 function nextGoal3(p) {
   const t = tut3(p);
   if (t.step < TUT3.length) return { ...TUT3[t.step], key: 'tut-' + t.step, fixed: true };
   if (hide3) return { icon: '🙈', key: 'hide', say: '¿Dónde está Luna? Camina y mira el globito: si sale fuego, ¡estás muy cerca!', fixed: true };
   if (p.asleep) return softGoal3(p, true) || { icon: '💤', key: 'sleep', say: 'Luna está durmiendo. Déjala descansar, o despiértala tocándola.', fixed: true };
-  const recovering = !!(p.sick && p.sick.treated);
-  const act3 = needsOf(p).filter(x => !(x.icon === '🤒' && recovering));
-  // Lo urgente (nivel rojo) no se puede omitir; lo demás sí, con «Ahora no»
-  for (const n of [...act3.filter(x => x.level === 'bad'), ...act3.filter(x => x.level === 'warn')]) {
-    const g = NEED3[n.icon];
-    if (!g) continue;
-    const key = 'need-' + n.icon, urgent = n.level === 'bad';
-    if (!urgent && isSkipped3(key)) continue;
-    // bebés (< semana 4): no hay botón Agua, la sed se quita con la leche
-    if (n.icon === '💧' && p.day < 4) return { icon: '🍼', key, place: 'casa', doId: 'eat', say: 'Luna tiene sed. En casa dale su lechita.', fixed: urgent };
-    let doId = g.doId;
-    if (doId === 'bath') doId = p.day < 8 ? 'wipe' : (p.lastDone.bano && p.day - p.lastDone.bano < 3 ? 'brush' : 'bath');
-    return { icon: n.icon, key, ...g, doId, say: doId === 'brush' ? 'Luna está sucia. Ve a la casa y cepíllala.' : g.say, fixed: urgent };
-  }
+  const need = careGoal(p, isSkipped3);   // mismas prioridades que el 2D (../js/extras.js)
+  if (need) return need;
   if (t.focus && !t.visited[t.focus] && !isSkipped3('focus-' + t.focus)) { const f = PL.find(x => x.id === t.focus); if (f) return { icon: f.icon, place: f.id, key: 'focus-' + f.id, say: `¡${f.name} está abierto! Sigue la flecha.` }; }
-  const map = { '🍖': ['casa', 'eat', 'Hora de comer. Ve a la casa y toca Comer.'], '💧': ['casa', 'water', 'Dale agua fresca a Luna en la casa.'],
-    '🎾': p.day >= 3 ? ['parque', 'kick', '¡A jugar! Ve al parque a patear la pelota.'] : ['casa', 'pet', 'Juega con Luna: dale mimos en la casa.'],
-    '🫧': p.day >= 3 ? ['casa', 'brush', 'Hora de la limpieza. En casa cepilla a Luna.'] : ['casa', 'wipe', 'Hora de la limpieza. En casa limpia a Luna.'],
-    '🎓': ['escuela', 'trick:', 'Hoy toca escuela. Enséñale un truco a Luna.'], '🗺️': ['parque', 'stroll', 'Sal a pasear con Luna: ve al parque y toca Pasear.'] };
-  const { waiting } = routinePending(p);
-  for (const r of routineFor(p, p.day, today(p))) {
-    if (r.have >= r.need || !routineReady(p, r.icon) || !map[r.icon] || isSkipped3('routine-' + r.icon)) continue;
-    const m = map[r.icon];
-    return { icon: r.icon, key: 'routine-' + r.icon, place: m[0], doId: m[1], say: m[2] };
-  }
-  const sg = softGoal3(p, false, waiting) || { icon: '🍄', key: 'explore', place: 'aventura', say: '¡Vamos a explorar el Valle Aventura!' };
-  if (recovering) return { ...sg, key: 'rec-' + sg.key, say: 'Luna se está curando: dale comida, agua y que descanse. ' + sg.say };
-  return sg;
+  const rt = routineNext(p, isSkipped3);
+  if (rt) return rt;
+  return recoverSay(p, softGoal3(p, false) || { icon: '🍄', key: 'explore', place: 'aventura', say: '¡Vamos a explorar el Valle Aventura!' });
 }
 // «Ahora no»: la sugerencia se guarda 10 minutos y Pío propone otra cosa
 const skip3 = new Map();
@@ -2878,6 +2802,198 @@ function updateMemory3(dt) {
   camTo(0, portrait ? 12 : 8, portrait ? 6.5 : 5.4, 0, 0.9, 0.3, dt);
 }
 
+// ---------- Parque: atrapar pelotas (igual que el 2D: 30 s, pelotas doradas valen 3) ----------
+const fetchScene = new THREE.Scene();
+function startFetch3() {
+  speak('¡Atrapa las pelotas antes de que caigan!');
+  card3(introCard3('🎾', [['⬅️➡️', '🐶'], ['Ⓐ 👆', '⤴️'], ['🎾', '😋'], ['🟡', '+3']]), () => fade(buildFetch3));
+}
+function buildFetch3() {
+  clearScene(fetchScene);
+  const lt = lights(fetchScene); lt.sun.position.set(3, 12, 8); lt.sun.target.position.set(0, 0, 0);
+  fetchScene.background = new THREE.Color('#bfe6ff'); fetchScene.fog = new THREE.Fog('#bfe6ff', 25, 60);
+  fetchScene.add(at(mesh(G.box(60, 0.2, 30), '#8fd46e', { cast: false, recv: true }), 0, -0.1, -6));
+  const r = rng(321);
+  for (let x = -20; x < 20; x += 2.5 + r() * 2) { const tr = makeTree(r() < 0.4); tr.position.set(x, 0, -8 - r() * 6); fetchScene.add(tr); }
+  enterMini(fetchScene, 'fetch');
+  kid.root.position.set(-8, 0, -1.5); kid.root.rotation.y = 0.4;
+  camera.position.set(0, 3.2, 11);
+  mini = {
+    kind: 'fetch', lt, time: 0, dur: 30, score: 0, balls: [], spawnT: 1, x: 0, y: 0, vy: 0, onGround: true, buffer: -9, lastGround: 0, face: 1, over: false,
+    update: updateFetch3, tap: e => { const nx = e.clientX / W.innerWidth * 2 - 1; mini.target = nx * 7; mini.buffer = mini.time; }, quit: () => exitMini('parque'),
+  };
+}
+function updateFetch3(dt) {
+  const m = mini, p = current.pet, st = stageOf(p.day);
+  if (!m.over) {
+    m.time += dt;
+    let dir = clamp((input.right - input.left) + input.jx, -1, 1);
+    if (m.target != null) { const d = m.target - m.x; dir = Math.abs(d) < 0.2 ? 0 : Math.sign(d); if (!dir) m.target = null; }
+    if (dir) m.face = dir;
+    m.x = clamp(m.x + dir * 6.5 * dt, -7, 7);
+    if (input.jumpPress || input.a) m.buffer = m.time;
+    if (m.onGround) m.lastGround = m.time;
+    if (m.time - m.buffer <= 0.12 && m.time - m.lastGround <= 0.1) { m.vy = 7.4; m.buffer = -9; m.onGround = false; sfx('pop'); }
+    const held = input.aHeld || input.up || pointerHeld;
+    m.vy -= (m.vy > 0 && !held ? 34 : 22) * dt; m.y += m.vy * dt;
+    if (m.y <= 0) { m.y = 0; m.vy = 0; m.onGround = true; }
+    m.spawnT -= dt;
+    if (m.spawnT <= 0 && m.time < m.dur - 1) {
+      const left = Math.random() < 0.5, gold = Math.random() < 0.12;
+      const b = mesh(G.sph(0.28, 14, 10), gold ? '#ffd23f' : '#c8f040'); fetchScene.add(b);
+      m.balls.push({ m: b, x: left ? -10 : 10, y: 1.5 + Math.random() * 2, vx: (left ? 1 : -1) * (2.2 + Math.random() * 3.5), vy: 2.5 + Math.random() * 3, gold, bounced: false });
+      m.spawnT = Math.max(0.65, 1.5 - m.time / 30);
+    }
+    for (const b of m.balls) {
+      b.vy -= 7 * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+      if (!b.dead && Math.abs(b.x - m.x) < 0.75 && b.y > m.y && b.y < m.y + 1.6) {
+        b.dead = true; const pts = b.gold ? 3 : 1; m.score += pts; sfx('coin'); burst(fetchScene, b.gold ? '⭐' : '🎾', b.m.position, 2, 0.45);
+      }
+      if (!b.dead && b.y <= 0.28) { if (!b.bounced) { b.bounced = true; b.vy = 2; b.vx *= 0.5; b.y = 0.28; } else b.dead = true; }
+      if (Math.abs(b.x) > 12) b.dead = true;
+      b.m.position.set(b.x, b.y, 0);
+      if (b.dead) fetchScene.remove(b.m);
+    }
+    m.balls = m.balls.filter(b => !b.dead);
+    gameHud(`<span>⏱️ ${Math.max(0, Math.ceil(m.dur - m.time))}</span><span>🎾 ${m.score}</span>`);
+    if (m.time >= m.dur) { const o = fetchOutcome(m.score); finishMini(o.stars, o.bones, o.extra, pp => fetchRewards(pp, m.score), 'parque'); }
+  }
+  dog.root.scale.setScalar(DOG_SCALE[Math.max(1, st.size)]);
+  dog.root.position.set(m.x, m.y, 0); dog.root.rotation.y = m.face > 0 ? Math.PI / 2 : -Math.PI / 2;
+  animateDog(dog, dt, { mode: m.over ? 'happy' : !m.onGround ? 'happy' : (Math.abs(input.right - input.left) + Math.abs(input.jx) > 0.1 || m.target != null) ? 'walk' : 'idle', speed: 4, mood: 'feliz' });
+  animateKid(kid, dt, false, 0);
+  drawLeash3(fetchScene, false);
+  camTo(m.x * 0.25, 3.2, 11, m.x * 0.25, 1.2, 0, dt);
+}
+
+// ---------- Casa: baño con esponja (igual que el 2D: 8 manchas, 20 s) ----------
+const bathScene = new THREE.Scene();
+let bath3 = null;
+function startBath3() {
+  if (busy) return;
+  speak('¡Pasa la esponja por las manchas!');
+  card3(introCard3('🛁', [['👆🧽', '🟤'], ['🟤', '✨']]), () => fade(buildBath3));
+}
+function buildBath3() {
+  clearScene(bathScene);
+  buildRoom(bathScene, { floor: '#dff4f2', back: '#c9efe9', side: '#ffffff', rug: null });
+  const tub = new THREE.Group();
+  tub.add(at(mesh(G.box(3.2, 0.9, 2), '#ffffff'), 0, 0.45, 0));
+  tub.add(at(mesh(G.box(2.9, 0.1, 1.7), '#bfe9ff', { cast: false }), 0, 0.88, 0));
+  bathScene.add(tub);
+  enterMini(bathScene, 'bath');
+  luna.x = 0; luna.z = 0;
+  kidS.x = -2.6; kidS.z = 1.8;
+  const spotsB = [];
+  for (let i = 0; i < 8; i++) {
+    const s = sprite('🟤', 0.32);
+    s.position.set((Math.random() - 0.5) * 0.9, 0.7 + Math.random() * 0.75, (Math.random() - 0.3) * 1.2);
+    dog.root.add(s); spotsB.push({ s, hp: 1 });
+  }
+  const el = document.createElement('div'); el.className = 'sponge3'; el.textContent = '🧽'; document.body.appendChild(el);
+  camera.position.set(0, 3.2, 5.2);
+  mini = {
+    kind: 'bath', time: 0, dur: 20, spots: spotsB, total: spotsB.length, cur: { x: W.innerWidth / 2, y: W.innerHeight * 0.75 }, el, over: false,
+    update: updateBath3, tap: e => { mini.cur.x = e.clientX; mini.cur.y = e.clientY; }, quit: () => { cleanBath3(); exitMini('casa'); },
+  };
+}
+function cleanBath3() { const m = mini; if (!m || m.kind !== 'bath') return; m.el.remove(); m.spots.forEach(s => dog.root.remove(s.s)); }
+const _bp = new THREE.Vector3();
+function updateBath3(dt) {
+  const m = mini, p = current.pet;
+  if (!m.over) {
+    m.time += dt;
+    const dx = clamp((input.right - input.left) + input.jx, -1, 1), dy = clamp((input.down - input.up) + input.jz, -1, 1);
+    m.cur.x = clamp(m.cur.x + dx * 420 * dt, 0, W.innerWidth); m.cur.y = clamp(m.cur.y + dy * 420 * dt, 0, W.innerHeight);
+    m.el.style.transform = `translate(${m.cur.x - 24}px, ${m.cur.y - 24}px)`;
+    let scrub = false;
+    for (const s of m.spots) {
+      if (s.hp <= 0) continue;
+      s.s.getWorldPosition(_bp); _bp.project(camera);
+      const sx = (_bp.x + 1) / 2 * W.innerWidth, sy = (1 - _bp.y) / 2 * W.innerHeight;
+      if (Math.hypot(sx - m.cur.x, sy - m.cur.y) < 46) { s.hp -= dt * 1.6; scrub = true; s.s.material.opacity = Math.max(0.15, s.hp); if (s.hp <= 0) { s.s.visible = false; sfx('pop'); } }
+    }
+    if (scrub && Math.random() < 0.3) { burst(bathScene, '🫧', new THREE.Vector3(luna.x + (Math.random() - 0.5), 1.3, luna.z + 0.6), 1, 0.4); }
+    const left = m.spots.filter(s => s.hp > 0).length;
+    gameHud(`<span>⏱️ ${Math.max(0, Math.ceil(m.dur - m.time))}</span><span>🟤 ${left}</span>`);
+    if (left === 0 || m.time >= m.dur) {
+      const frac = (m.total - left) / m.total, o = bathOutcome(p, frac);
+      cleanBath3();
+      finishMini(o.stars, o.bones, o.extra, pp => bathRewards(pp, frac), 'casa');
+    }
+  }
+  dog.root.scale.setScalar(DOG_SCALE[stageOf(p.day).size]);
+  dog.root.position.set(luna.x, 0.55, luna.z); dog.root.rotation.y = 0;
+  animateDog(dog, dt, { mode: m.over ? 'happy' : 'sit', mood: 'feliz' });
+  kid.root.position.set(kidS.x, 0, kidS.z); kid.root.rotation.y = 0.9;
+  animateKid(kid, dt, false, 0);
+  drawLeash3(bathScene, false);
+  camTo(0, 3.2, 5.2, 0, 1, 0, dt);
+}
+
+// ---------- Mapa del pueblo (mismo dibujo que el 2D: ../js/extras.js) ----------
+function openMap3() {
+  if (!current) return;
+  const p = current.pet, g = goal3, tg = g && g.target ? g.target() : null;
+  card3(mapCardHTML());
+  const data = {
+    b: { x0: BOUNDS.x0, y0: BOUNDS.z0, x1: BOUNDS.x1, y1: BOUNDS.z1 },
+    roads: TOWN_PATHS3,
+    water: [{ x: 17, y: 7, rx: 4.6, ry: 4.6 }, { x0: VALLEY.x0, y0: VALLEY.riverZ - 1.5, x1: BOUNDS.x1, y1: VALLEY.riverZ + 1.5 }, { x: -4, y: 5, rx: 1.4, ry: 1.4 }],
+    zones: [{ x0: BOUNDS.x0, y0: BOUNDS.z0, x1: -21, y1: -17.5, c: '#6fb35a' }, { x0: -12, y0: -3, x1: 4, y1: 13, c: '#b6e39a' }, { x0: DOGPARK.x0, y0: DOGPARK.z0, x1: DOGPARK.x1, y1: DOGPARK.z1, c: '#c8eea8' }, { x0: VALLEY.x0, y0: VALLEY.z0, x1: BOUNDS.x1, y1: BOUNDS.z1, c: '#7fc46a' }],
+    places: PL.map(pl => ({ id: pl.id, x: pl.x, y: pl.z })),
+    me: { x: kidS.x, y: kidS.z }, luna: dog.root.parent === town ? { x: luna.x, y: luna.z } : null,
+    dogs: townDogs.map(dg => ({ x: dg.x, y: dg.z, mood: dg.def.mood })),
+    items: valleyItems.map(v => ({ x: v.x, y: v.z, icon: VALLEY_ITEMS[v.item].icon })),
+    goal: tg ? { x: tg.x, y: tg.z } : null, goalPlace: g && g.place,
+  };
+  const cv = $('#townmap'), hits = drawTownMap(cv, data, p);
+  speak(MAP_SAY);
+  cv.addEventListener('click', ev => {
+    const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) * cv.width / r.width, y = (ev.clientY - r.top) * cv.height / r.height;
+    const h = hits.find(q => Math.hypot(q.x - x, q.y - y) < q.r);
+    if (h) { closeCard3(); mapGo3(h.id); }
+  });
+}
+// Caminar solo hasta un lugar elegido en el mapa
+function mapGo3(id) {
+  if (hide3 || mini) return;
+  if (where === 'park') closePark(); else if (where === 'spot') closeSpot3(); else if (where === 'lake' || where === 'forestmenu') { where = 'town'; $('#actions').hidden = true; }
+  const tr = triggers.find(x => x.pl.id === id);
+  if (!tr) return;
+  if (where !== 'town') { speak('Primero sal de aquí y luego te llevo.'); return; }
+  if (nearT === tr) return enterPlace3(tr.pl);
+  const pts = findPath3(kidS.x, kidS.z, tr.x, tr.z);
+  if (pts) { autoWalk = { pts, place: id, stuck: 0, best: Infinity }; sfx('pop'); speak(PLACE_UI_ALL[id].name); }
+}
+
+// ---------- Copia de seguridad y borrar partidas (igual que el 2D) ----------
+function exportSave3() {
+  saveRoot();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([Cloud.exportJSON(W.root)], { type: 'application/json' }));
+  a.download = `luna-partidas-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  pop('💾', '✔');
+}
+function importSave3(file) {
+  file.text().then(txt => {
+    const data = migrate(JSON.parse(txt));
+    if (!validRoot(data)) throw new Error('formato');
+    card3(`<div class="result"><h2>💾 ¿Importar?</h2><p class="fact">${data.profiles.length} partida(s). Reemplaza las de este navegador.</p><div class="quiz"><button class="go" data-imp="yes">💾 Importar</button><button class="go" data-imp="no">✖</button></div></div>`);
+    importPending3 = data;
+  }).catch(() => pop('⚠️'));
+}
+let importPending3 = null, delPending3 = null;
+function askDelete3(id) {
+  const pr = W.root.profiles.find(x => x.id === id);
+  if (!pr) return;
+  delPending3 = id;
+  const msg = Cloud.linked(pr) ? `${pr.name}: se quita de este aparato. Sigue guardada en la nube (☁️ ${pr.cloud.user}).` : `${pr.name}: se borrará su Luna para siempre.`;
+  card3(`<div class="result"><h2>🗑️ ¿Borrar?</h2><p class="fact">${esc3(msg)}</p><div class="quiz"><button class="go danger" data-del3="yes">🗑️ Borrar</button><button class="go" data-del3="no">✖</button></div></div>`);
+}
+
 // ====================== Bucle ======================
 const timer = new THREE.Timer();
 timer.connect(document);
@@ -2985,6 +3101,7 @@ function update(dt) {
   }
   if (luna.modeT > 0) { luna.modeT -= dt; if (luna.mode === 'spin') luna.ry += dt * 9; if (luna.modeT <= 0 && ['happy', 'sit', 'paw', 'lie', 'spin'].includes(luna.mode)) luna.mode = 'idle'; }
   if (where === 'room') { animateNPC(npcs[roomId], dt); updateTrain3(dt); }
+  if (where === 'home') updateTrain3(dt);
   const mode = p.asleep ? 'sleep' : moving ? 'walk' : (luna.modeT > 0 || luna.mode === 'sleep') ? luna.mode : 'idle';
   if (!p.asleep && luna.mode === 'sleep' && !busy && luna.modeT <= 0) luna.mode = 'idle';
   animateDog(dog, dt, { mode: hide3 ? 'lie' : mode, speed: moving ? lunaSp : 0, eyesClosed: p.day < 2, sad: ['triste', 'enferma'].includes(moodOf(p)), mood: moodOf(p) });
@@ -3163,6 +3280,13 @@ document.addEventListener('click', e => {
   if (b.id === 'guideSkip') { skipGoal3(); return; }
   if (b.dataset.act === 'help') { placeHelp3(); return; }
   if (b.id === 'diary3') { openDiary3(); return; }
+  if (b.id === 'map3') { openMap3(); return; }
+  if (b.dataset.say !== undefined && b.classList.contains('stk')) { speak(b.dataset.say); return; }
+  if (b.dataset.imp) { $('#card3').hidden = true; if (b.dataset.imp === 'yes' && importPending3) { importPending3.profiles.forEach(pr => normalizePet(pr.pet)); W.root = importPending3; W.root.activeId = null; saveRoot(); showPicker(); pop('💾', '✔'); } importPending3 = null; return; }
+  if (b.dataset.del3) { $('#card3').hidden = true; if (b.dataset.del3 === 'yes' && delPending3) { W.root.profiles = W.root.profiles.filter(x => x.id !== delPending3); saveRoot(); showPicker(); } delPending3 = null; return; }
+  if (b.dataset.delslot) { askDelete3(b.dataset.delslot); return; }
+  if (b.dataset.export !== undefined) { exportSave3(); return; }
+  if (b.dataset.import !== undefined) { $('#import3').click(); return; }
   if (b.dataset.quiz !== undefined) { quizAnswer3(b.dataset.quiz === '1'); return; }
   if (b.dataset.card) { closeCard3(); return; }
   if (b.getAttribute('aria-disabled') === 'true') { pop(b.querySelector('.badge')?.textContent || '✋'); speak(b.dataset.say); return; }
@@ -3171,10 +3295,10 @@ document.addEventListener('click', e => {
   if (a === 'quitforest') { if (forest) { forest.over = true; $('#forestHud').hidden = true; leaveForest(); } return; }
   if (a === 'quitgame') { if (mini && mini.quit) mini.quit(); else if (hide3) endHide3(false); return; }
   if (b.dataset.avatar) { document.querySelectorAll('[data-avatar]').forEach(x => x.classList.toggle('sel', x === b)); return; }
-  if (a && ['stroll', 'kick', 'bench', 'closepark', 'agility', 'hide'].includes(a)) parkAct(a);
+  if (a && (where === 'park' || ['stroll', 'kick', 'bench', 'closepark', 'agility', 'hide', 'fetch'].includes(a))) parkAct(a);
   else if (a && (a.startsWith('sp:') || a === 'closespot')) spotAct3(a);
   else if (a && where === 'room') roomAct(a);
-  else if (a && (where === 'lake' || ['ducks', 'drink', 'splash', 'closelake', 'duckfeed'].includes(a))) lakeAct(a);
+  else if (a && (where === 'lake' || ['ducks', 'fountain', 'splash', 'closelake', 'duckfeed'].includes(a))) lakeAct(a);
   else if (a && (a.startsWith('level:') || a === 'closeforest')) forestAct(a);
   else if (a) act(a);
   if (b.dataset.pick) { const pr = W.root.profiles.find(x => x.id === b.dataset.pick); b.disabled = true; Cloud.refresh(pr).finally(() => startGame(pr)); }
@@ -3205,10 +3329,11 @@ buildShelterPen3(); buildTownDogs3(); buildBunnies3();
 camera.position.set(-16, 10, 2); camera.lookAt(-16, 0.6, -9);
 function showPicker() {
   const list = W.root.profiles;
-  $('#pick-list').innerHTML = list.map(pr => `<div class="slot-row"><button class="slot" data-pick="${pr.id}">${esc3(pr.avatar)} ${esc3(pr.name)} <span>${STAGE_ICON3[stageOf(dayAt(pr.pet, now(pr.pet))).id]} ▶</span></button><button class="slot-cloud${Cloud.linked(pr) ? ' on' : ''}" data-cloud="${pr.id}" aria-label="${Cloud.linked(pr) ? 'En la nube' : 'Guardar en la nube'}: ${esc3(pr.name)}">☁️</button></div>`).join('');
+  $('#pick-list').innerHTML = list.map(pr => `<div class="slot-row"><button class="slot" data-pick="${pr.id}">${esc3(pr.avatar)} ${esc3(pr.name)} <span>${STAGE_ICON3[stageOf(dayAt(pr.pet, now(pr.pet))).id]} ▶</span></button><button class="slot-cloud${Cloud.linked(pr) ? ' on' : ''}" data-cloud="${pr.id}" aria-label="${Cloud.linked(pr) ? 'En la nube' : 'Guardar en la nube'}: ${esc3(pr.name)}">☁️</button><button class="slot-cloud" data-delslot="${pr.id}" aria-label="Borrar partida de ${esc3(pr.name)}">🗑️</button></div>`).join('');
   $('#avatars3').innerHTML = AVATARS3.map((a, i) => `<button type="button" class="avatar ${i === 0 ? 'sel' : ''}" data-avatar="${a}" aria-label="Tu cara ${i + 1}">${a}</button>`).join('');
   $('#coats').innerHTML = Object.entries(COATS).map(([k, c], i) => `<button type="button" class="coat ${i === 0 ? 'sel' : ''}" data-coat="${k}" style="background:${c.fur}" aria-label="${c.name}"></button>`).join('');
-  $('#voice-slot').innerHTML = voiceSettingsHTML();
+  $('#voice-slot').innerHTML = voiceSettingsHTML() + '<p>Copia de seguridad de las partidas:</p><div class="row-btns3"><button class="slot" data-export>💾 Exportar</button><button class="slot" data-import>📂 Importar</button></div><input type="file" id="import3" accept="application/json,.json" hidden>';
+  $('#import3').addEventListener('change', ev => { const fl = ev.target.files[0]; ev.target.value = ''; if (fl) importSave3(fl); });
   $('#picker').hidden = false;
   $('#hud').hidden = true;
   if (!dog) { dog = buildDog({ coat: 'dorado', day: 10, acc: { worn: 'lazo' } }); town.add(dog.root); }
