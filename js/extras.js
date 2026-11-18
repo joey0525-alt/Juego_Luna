@@ -501,12 +501,12 @@ function placeEffect(cmd, p) {
     case 'ducks': e.ducks = true; outdoorRisk(p); return { fx: { felicidad: 10 }, kind: 'play', icon: '🦆', msg: 'Miraron a los patos.', word: '¡Cuac cuac!', anim: 'ducks' };
     case 'fountain': return { fx: { hidratacion: 30 }, kind: 'water', icon: '🚰', msg: 'Bebió del bebedero del lago.', word: '¡Glu glu!', anim: 'fountain' };
     case 'splash': outdoorRisk(p); if (weatherNow() === 'lluvia') markGame(p, 'rainsplash'); return { fx: { felicidad: 18, energia: -10, higiene: -18 }, kind: 'play', icon: '💦', msg: 'Chapoteó en la orilla.', word: '¡Splash!', anim: 'splash' };
-    case 'treat-sick': p.sick.treated = true; p.stats.salud = clamp(p.stats.salud + 10, 0, 100); return { fx: {}, kind: null, icon: '💊', msg: 'La veterinaria le dio tratamiento a Luna.', word: 'Ahora necesita descansar, comer y beber agua', anim: 'vet' };
-    case 'deworm': p.deworm.push(d); return { fx: {}, kind: null, icon: '💊', msg: 'Luna tomó su desparasitante.', word: '¡Pastilla tomada!', anim: 'vet' };
+    case 'treat-sick': p.sick.treated = true; p.stats.salud = clamp(p.stats.salud + 25, 0, 100); return { fx: {}, kind: null, icon: '💊', msg: 'La veterinaria le dio tratamiento a Luna.', word: 'Ahora necesita descansar, comer y beber agua', anim: 'vet' };
+    case 'deworm': p.deworm.push(d); return { fx: { salud: 8 }, kind: null, icon: '💊', msg: 'Luna tomó su desparasitante.', word: '¡Pastilla tomada!', anim: 'vet' };
     case 'vac': {
       const v = VACCINES.find(x => x.id === arg); p.vaccines[v.id] = d;
       if (walkUnlocked(p)) addMilestone(p, 'vacunas', '🛡️', 'Luna completó sus vacunas de cachorro.');
-      return { fx: { felicidad: -8 }, kind: null, icon: '💉', msg: `Vacuna aplicada: ${v.name}.`, word: '¡Qué valiente!', anim: 'vet', sad: true };
+      return { fx: { felicidad: -8, salud: 8 }, kind: null, icon: '💉', msg: `Vacuna aplicada: ${v.name}.`, word: '¡Qué valiente!', anim: 'vet', sad: true };
     }
     case 'wear': p.acc.worn = arg || null; return { special: 'wear', icon: arg ? SHOP.find(x => x.id === arg).icon : '🚫', word: arg ? '¡Qué guapa!' : '' };
   }

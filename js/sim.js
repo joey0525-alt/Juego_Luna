@@ -232,11 +232,11 @@ function step(p, t, dt) {
 
   const bad = (s.saciedad < 15) + (s.hidratacion < 15) + (s.higiene < 15);
   if (bad) s.salud -= bad * 2.5 * dt;
-  else if (!p.sick && s.saciedad > 40 && s.hidratacion > 40) s.salud += 1.5 * dt;
+  else if (!p.sick && s.saciedad > 40 && s.hidratacion > 40) s.salud += 5 * dt;
 
   if (p.sick) {
     if (p.sick.treated) {
-      s.salud += 4 * dt;
+      s.salud += 15 * dt;
       if (s.salud >= 75) { p.sick = null; addEvent(p, '💪', '¡Luna se recuperó por completo!', t); }
     } else { s.salud -= 1 * dt; s.felicidad -= 1.5 * dt; }
   } else {
